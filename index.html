@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>የአዲስ ዓመት ዕጣ መተግበሪያ</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B1F17">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ዕጣ App">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Noto+Sans+Ethiopic:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg-deep:#0B1F17;
+    --bg-panel:#122A20;
+    --gold:#F2B705;
+    --gold-soft:#F7D774;
+    --coral:#E85D3D;
+    --cream:#FBF3DE;
+    --muted:#8FA396;
+    --line:#26483866;
+    --ok:#6FCF97;
+    --err:#E8604A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 5%, #1A3B2B 0%, transparent 45%),
+      radial-gradient(circle at 85% 95%, #1A3B2B 0%, transparent 45%),
+      var(--bg-deep);
+    min-height:100vh;
+    font-family:'Noto Sans Ethiopic','Fraunces',serif;
+    color:var(--cream);
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:26px 20px 70px;}
+
+  header{text-align:center;margin-bottom:22px;}
+  .eyebrow{font-family:'Space Mono',monospace;letter-spacing:.3em;text-transform:uppercase;font-size:10px;color:var(--gold-soft);opacity:.8;margin-bottom:8px;}
+  h1{
+    font-family:'Fraunces',serif;font-weight:900;font-size:clamp(26px,4.4vw,40px);margin:0 0 4px;
+    background:linear-gradient(180deg,var(--gold-soft),var(--gold));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .sub{color:var(--muted);font-size:13px;font-style:italic;font-family:'Fraunces',serif;}
+
+  nav{display:flex;justify-content:center;gap:8px;margin:22px 0 26px;flex-wrap:wrap;}
+  nav button{
+    font-family:'Noto Sans Ethiopic',sans-serif;font-weight:700;font-size:13.5px;
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    padding:10px 18px;border-radius:999px;cursor:pointer;transition:.15s;
+  }
+  nav button.active{background:linear-gradient(180deg,var(--gold-soft),var(--gold));color:#26200A;border-color:transparent;}
+  nav button:not(.active):hover{border-color:var(--gold);color:var(--gold-soft);}
+
+  .panel{display:none;}
+  .panel.active{display:block;animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  .card{
+    background:linear-gradient(180deg,var(--bg-panel),#0F241B);
+    border:1px solid var(--line);border-radius:18px;padding:26px;margin-bottom:20px;
+    box-shadow:0 20px 50px -24px #00000080;
+  }
+  .card h2{font-size:18px;margin:0 0 4px;color:var(--gold-soft);font-family:'Noto Sans Ethiopic',sans-serif;}
+  .card .hint{color:var(--muted);font-size:13px;margin:0 0 18px;line-height:1.6;}
+
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  input[type=text],input[type=tel],input[type=number]{
+    width:100%;background:#0A1B14;border:1px solid var(--line);border-radius:9px;color:var(--cream);
+    font-family:'Noto Sans Ethiopic',sans-serif;font-size:14.5px;padding:12px 14px;margin-bottom:16px;
+  }
+  input:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:600px){.field-row{grid-template-columns:1fr;}}
+
+  button.btn{
+    font-family:'Noto Sans Ethiopic',sans-serif;font-weight:700;font-size:14.5px;border:none;
+    border-radius:999px;padding:13px 26px;cursor:pointer;transition:.15s;
+  }
+  .btn-primary{background:linear-gradient(180deg,var(--gold-soft),var(--gold));color:#26200A;box-shadow:0 10px 22px -10px #F2B70588;}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--cream);}
+  .btn-ghost:hover{border-color:var(--gold);color:var(--gold-soft);}
+  .btn-danger{background:transparent;border:1px solid #E8604A55;color:#E8604A;font-size:12px;padding:7px 14px;}
+  .btn-danger:hover{background:#E8604A18;}
+
+  .msg{font-family:'Space Mono',monospace;font-size:13px;padding:10px 14px;border-radius:10px;margin-bottom:14px;display:none;}
+  .msg.show{display:block;}
+  .msg.ok{background:#6FCF9718;color:var(--ok);border:1px solid #6FCF9740;}
+  .msg.err{background:#E8604A18;color:var(--err);border:1px solid #E8604A40;}
+
+  .stat-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+  .stat{
+    flex:1;min-width:140px;background:#0A1B14;border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;text-align:center;
+  }
+  .stat .num{font-family:'Space Mono',monospace;font-size:24px;color:var(--gold-soft);font-weight:700;}
+  .stat .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{
+    text-align:left;font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.05em;
+    color:var(--muted);text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line);
+  }
+  td{padding:9px 10px;border-bottom:1px solid #1E3C2E;font-family:'Noto Sans Ethiopic',sans-serif;}
+  tr:hover td{background:#0F241B;}
+  .search{margin-bottom:14px;}
+  .empty-note{color:var(--muted);font-size:13px;text-align:center;padding:24px 0;}
+
+  /* draw tier styling (reused) */
+  .total-banner{text-align:center;margin-bottom:22px;font-family:'Space Mono',monospace;color:var(--muted);font-size:13px;}
+  .total-banner b{color:var(--gold-soft);font-size:16px;}
+  .tier{background:linear-gradient(180deg,var(--bg-panel),#0F241B);border:1px solid var(--line);border-radius:20px;padding:24px 24px 20px;margin-bottom:20px;position:relative;overflow:hidden;}
+  .tier::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+  .tier-rank{font-family:'Fraunces',serif;font-weight:900;font-size:14px;color:var(--gold);letter-spacing:.05em;text-transform:uppercase;}
+  .tier-prize{font-size:14.5px;color:var(--cream);margin-top:2px;}
+  .reel-area{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;padding:20px 10px;background:#08150F;border-radius:14px;border:1px solid #1E3C2E;min-height:120px;margin-top:16px;}
+  .reel-ticket{font-family:'Space Mono',monospace;font-size:clamp(26px,5.5vw,42px);font-weight:700;color:var(--gold-soft);letter-spacing:.06em;text-shadow:0 0 24px #F2B70555;}
+  .reel-ticket.spinning{color:var(--muted);text-shadow:none;}
+  .reel-arrow{color:var(--muted);font-size:20px;}
+  .reel-winner .name{font-weight:800;font-size:clamp(20px,3.6vw,28px);color:var(--cream);margin:0 0 2px;}
+  .reel-winner .phone{font-family:'Space Mono',monospace;color:var(--muted);font-size:13px;}
+  .reel-placeholder{color:var(--muted);font-size:14px;}
+  .tier-actions{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .win-flash{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#F2B70522,transparent 60%);opacity:0;pointer-events:none;transition:opacity .4s;}
+  .win-flash.show{opacity:1;}
+  .confetti{position:fixed;top:-20px;width:9px;height:16px;border-radius:2px;pointer-events:none;z-index:50;animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg);opacity:.9;}}
+
+  .prize-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:700px){.prize-grid{grid-template-columns:1fr;}}
+
+  footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:30px;font-family:'Space Mono',monospace;}
+  .sync-note{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);text-align:center;margin-top:-10px;margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Ethiopian New Year · 2019 ዓ.ም</div>
+    <h1>🌼 የዕጣ መተግበሪያ</h1>
+    <div class="sub">Registration + Live Draw — shared across every device</div>
+  </header>
+
+  <nav>
+    <button data-tab="register" class="active">📝 ምዝገባ / Register</button>
+    <button data-tab="registry">📋 ዝርዝር / Registry</button>
+    <button data-tab="draw">🎉 ዕጣ / Draw</button>
+    <button data-tab="settings">⚙️ ማስተካከያ / Settings</button>
+  </nav>
+  <div class="sync-note" id="syncNote">በመጫን ላይ... / loading...</div>
+  <div id="installBar" style="display:none;text-align:center;margin:-10px 0 20px;">
+    <button class="btn btn-primary" id="installBtn">📲 መተግበሪያውን ጫን / Install App</button>
+  </div>
+  <div id="iosHint" style="display:none;text-align:center;font-family:'Space Mono',monospace;font-size:11.5px;color:var(--muted);margin:-10px 0 20px;">
+    📲 iPhone/iPad ላይ ለመጫን፦ ከታች ያለውን Share (⬆️) ተጭነው "Add to Home Screen" ይምረጡ<br>
+    On iPhone/iPad: tap Share (⬆️) then "Add to Home Screen"
+  </div>
+
+  <!-- ============ REGISTER ============ -->
+  <section class="panel active" id="panel-register">
+    <div class="card">
+      <h2>ደንበኛ መዝግብ / Register a Customer</h2>
+      <p class="hint">የደንበኛ ስም፣ ስልክ እና የተከፈለ መጠን ያስገቡ። ዕድል ብዛት ራስ-ሰር ይሰላል እና ወዲያውኑ ለሁሉም ይታያል።<br>Enter name, phone, and amount paid. Entries are calculated automatically and sync to every device instantly.</p>
+      <div id="regMsg" class="msg"></div>
+      <label>የደንበኛ ስም / Customer Name</label>
+      <input type="text" id="regName" placeholder="ለምሳሌ፡ አበበ ከበደ">
+      <div class="field-row">
+        <div>
+          <label>ስልክ ቁጥር / Phone Number</label>
+          <input type="tel" id="regPhone" placeholder="09XXXXXXXX">
+        </div>
+        <div>
+          <label>የተከፈለ መጠን (ብር) / Amount Paid (ETB)</label>
+          <input type="number" id="regAmount" placeholder="1500" min="0">
+        </div>
+      </div>
+      <label>የመዘገበው ሻጭ/ቅርንጫፍ (አማራጭ) / Registered by — staff/branch (optional)</label>
+      <input type="text" id="regStaff" placeholder="ለምሳሌ፡ ቅርንጫፍ 1 - ሰላም">
+      <div id="entriesPreview" style="font-family:'Space Mono',monospace;color:var(--gold-soft);font-size:13px;margin-bottom:16px;"></div>
+      <button class="btn btn-primary" id="regSubmit">✅ መዝግብ / Register Entry</button>
+    </div>
+
+    <div class="card">
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statPeople">0</div><div class="lbl">ተሳታፊ / Participants</div></div>
+        <div class="stat"><div class="num" id="statEntries">0</div><div class="lbl">ጠቅላላ ዕድል / Total Entries</div></div>
+        <div class="stat"><div class="num" id="statAmount">0</div><div class="lbl">የተሰበሰበ ብር / Collected ETB</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ REGISTRY ============ -->
+  <section class="panel" id="panel-registry">
+    <div class="card">
+      <h2>የተመዘገቡ ደንበኞች / Registered Customers</h2>
+      <p class="hint">ማንኛውም መሳሪያ ላይ የገባ ምዝገባ እዚህ ይታያል። / Entries from any device appear here.</p>
+      <input type="text" class="search" id="searchBox" placeholder="🔍 በስም ወይም ስልክ ፈልግ / Search by name or phone">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+        <button class="btn btn-ghost" id="refreshRegistry">🔄 አድስ / Refresh</button>
+        <button class="btn btn-ghost" id="exportExcel">📥 ወደ Excel አውርድ / Export to Excel</button>
+        <button class="btn btn-ghost" id="importExcelBtn">📤 ከ Excel አስገባ / Import from Excel</button>
+        <input type="file" id="importExcelFile" accept=".xlsx,.xls,.csv" style="display:none;">
+      </div>
+      <div id="importMsg" class="msg"></div>
+      <p class="hint" style="margin:-6px 0 14px;">
+        Export ስም/ስልክ/ብር/ቀን አምዶችን ይሰጣል — ይህንን ኮፒ አድርገው በ Excel ስራ "ደንበኞች_Entries" ሉህ B5 ጀምረው መለጠፍ ይችላሉ (ዕድል/ትኬት ራስ-ሰር ይሰላል)። Import ተመሳሳይ ፋይል ወይም ከዚያ ኤክሴል ሉህ የተላከ ፋይል ይቀበላል።<br>
+        Export gives Name/Phone/Amount/Date columns — paste starting at cell B5 in your Excel "ደንበኞች_Entries" sheet. Import accepts that same layout, or an export straight from that Excel sheet.
+      </p>
+      <div style="overflow-x:auto;">
+        <table id="registryTable">
+          <thead><tr><th>ስም / Name</th><th>ስልክ / Phone</th><th>ብር / ETB</th><th>ዕድል / Entries</th><th>ትኬት / Tickets</th><th>ሻጭ / Staff</th><th></th></tr></thead>
+          <tbody id="registryBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-note" id="registryEmpty" style="display:none;">ገና ምንም ደንበኛ አልተመዘገበም / No customers registered yet</div>
+    </div>
+  </section>
+
+  <!-- ============ DRAW ============ -->
+  <section class="panel" id="panel-draw">
+    <div class="total-banner">ጠቅላላ ተሳታፊ <b id="drawTotalPeople">0</b> ፣ ጠቅላላ ዕድል (ትኬት) <b id="drawTotalEntries">0</b></div>
+    <div class="tier" id="tier1"></div>
+    <div class="tier" id="tier2"></div>
+    <div class="tier" id="tier3"></div>
+    <div style="text-align:center;">
+      <button class="btn btn-ghost" id="refreshDraw">🔄 ተሳታፊ ዝርዝር አድስ / Refresh Participant Data</button>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="panel" id="panel-settings">
+    <div class="card">
+      <h2>የዕጣ ተመን / Entry Rate</h2>
+      <label>በስንት ብር 1 ዕድል ይሰጣል? / ETB per 1 entry</label>
+      <input type="number" id="setRate" min="1" value="500">
+    </div>
+    <div class="card">
+      <h2>ሽልማቶች / Prizes</h2>
+      <div class="prize-grid">
+        <div><label>🥇 1ኛ ሽልማት / 1st Prize</label><input type="text" id="setPrize1"></div>
+        <div><label>🥈 2ኛ ሽልማት / 2nd Prize</label><input type="text" id="setPrize2"></div>
+        <div><label>🥉 3ኛ ሽልማት / 3rd Prize</label><input type="text" id="setPrize3"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ግላዊነት / Privacy</h2>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="setMask" style="width:auto;margin:0;accent-color:#F2B705;">
+        በዕጣ ስክሪን ላይ ስልክ በከፊል ደብቅ / Mask phone numbers on the draw screen
+      </label>
+    </div>
+    <div id="setMsg" class="msg"></div>
+    <button class="btn btn-primary" id="saveSettings">💾 አስቀምጥ / Save Settings</button>
+    <p class="hint" style="margin-top:20px;">⚠️ ይህ ማስተካከያ ለሁሉም መሳሪያ ይተገበራል። / These settings apply to every device using this app.</p>
+  </section>
+
+  <footer>የግንባታ ኩባንያ · New Year Raffle Application — shared, live, transparent</footer>
+</div>
+
+<script>
+/* ================= storage helpers ================= */
+const K_SETTINGS = 'raffle:settings';
+const K_PARTICIPANTS = 'raffle:participants';
+const K_RESULTS = 'raffle:draw_results';
+
+async function storageGet(key){
+  try{
+    const r = await window.storage.get(key, true);
+    return r ? JSON.parse(r.value) : null;
+  }catch(e){ return null; }
+}
+async function storageSet(key, value){
+  try{
+    const r = await window.storage.set(key, JSON.stringify(value), true);
+    return !!r;
+  }catch(e){ console.error('storage set failed', e); return false; }
+}
+
+const DEFAULT_SETTINGS = {
+  rate: 500,
+  prizes: [
+    'የኮንክሪት ማደባለቂያ ማሽን (Concrete Mixer 350L)',
+    'የኃይል መሳሪያ ስብስብ (Grinder + Drill + Saw)',
+    'የግንባታ የእጅ መሳሪያ ኪት (Hand Tool Kit)'
+  ],
+  maskPhone: true
+};
+
+let settings = { ...DEFAULT_SETTINGS };
+let participants = [];
+
+function computeRanges(list){
+  let cursor = 1;
+  return list.map(p=>{
+    const start = cursor, end = cursor + p.entries - 1;
+    cursor = end + 1;
+    return { ...p, start, end };
+  });
+}
+
+async function loadAll(){
+  const s = await storageGet(K_SETTINGS);
+  settings = s || DEFAULT_SETTINGS;
+  const p = await storageGet(K_PARTICIPANTS);
+  participants = p || [];
+  document.getElementById('syncNote').textContent =
+    `የተመሳሰለ ውሂብ / synced — ${new Date().toLocaleTimeString('en-GB')}`;
+  refreshRegisterStats();
+  refreshRegistryTable();
+  applySettingsToForm();
+}
+
+/* ================= tabs ================= */
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab === 'registry') refreshRegistryTable();
+    if(btn.dataset.tab === 'draw') setupDrawTab();
+    if(btn.dataset.tab === 'settings') applySettingsToForm();
+  });
+});
+
+/* ================= register ================= */
+function showMsg(el, text, ok){
+  el.textContent = text;
+  el.className = 'msg show ' + (ok ? 'ok' : 'err');
+  setTimeout(()=>{ el.classList.remove('show'); }, 3500);
+}
+
+function updateEntriesPreview(){
+  const amount = parseFloat(document.getElementById('regAmount').value) || 0;
+  const rate = settings.rate || 500;
+  const entries = Math.floor(amount / rate);
+  const el = document.getElementById('entriesPreview');
+  el.textContent = amount > 0
+    ? `→ ${entries} ዕድል ያገኛል / earns ${entries} ${entries===1?'entry':'entries'} (${amount} ÷ ${rate})`
+    : '';
+}
+document.getElementById('regAmount').addEventListener('input', updateEntriesPreview);
+
+document.getElementById('regSubmit').addEventListener('click', async ()=>{
+  const msgEl = document.getElementById('regMsg');
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const amount = parseFloat(document.getElementById('regAmount').value) || 0;
+  const staff = document.getElementById('regStaff').value.trim();
+  const rate = settings.rate || 500;
+  const entries = Math.floor(amount / rate);
+
+  if(!name || !phone){ showMsg(msgEl, '⚠️ ስም እና ስልክ ያስፈልጋል / Name and phone required', false); return; }
+  if(entries < 1){ showMsg(msgEl, `⚠️ ቢያንስ ${rate} ብር ያስፈልጋል ለ1 ዕድል / Minimum ${rate} ETB needed for 1 entry`, false); return; }
+
+  const btn = document.getElementById('regSubmit');
+  btn.disabled = true; btn.textContent = 'በመመዝገብ ላይ... / Saving...';
+
+  // reload fresh list to reduce overwrite risk, then append
+  const fresh = (await storageGet(K_PARTICIPANTS)) || [];
+  fresh.push({
+    id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    name, phone, amount, entries, staff,
+    timestamp: new Date().toISOString()
+  });
+  const saved = await storageSet(K_PARTICIPANTS, fresh);
+  btn.disabled = false; btn.textContent = '✅ መዝግብ / Register Entry';
+
+  if(saved){
+    participants = fresh;
+    showMsg(msgEl, `🎉 ተመዝግቧል! ${name} — ${entries} ዕድል አግኝቷል / Registered — ${entries} entries`, true);
+    document.getElementById('regName').value = '';
+    document.getElementById('regPhone').value = '';
+    document.getElementById('regAmount').value = '';
+    document.getElementById('regStaff').value = '';
+    document.getElementById('entriesPreview').textContent = '';
+    refreshRegisterStats();
+  } else {
+    showMsg(msgEl, '❌ ስህተት ተፈጥሯል፣ እንደገና ይሞክሩ / Something went wrong, please retry', false);
+  }
+});
+
+function refreshRegisterStats(){
+  document.getElementById('statPeople').textContent = participants.length;
+  document.getElementById('statEntries').textContent = participants.reduce((s,p)=>s+p.entries,0);
+  document.getElementById('statAmount').textContent = participants.reduce((s,p)=>s+p.amount,0).toLocaleString();
+}
+
+/* ================= registry ================= */
+function refreshRegistryTable(){
+  const ranged = computeRanges(participants);
+  const q = (document.getElementById('searchBox').value || '').toLowerCase();
+  const filtered = ranged.filter(p => !q || p.name.toLowerCase().includes(q) || p.phone.includes(q));
+  const body = document.getElementById('registryBody');
+  const empty = document.getElementById('registryEmpty');
+  body.innerHTML = '';
+  if(filtered.length === 0){ empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  filtered.slice().reverse().forEach(p=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.phone)}</td>
+      <td>${p.amount.toLocaleString()}</td>
+      <td>${p.entries}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:12px;">#${p.start}${p.end>p.start?'–#'+p.end:''}</td>
+      <td style="color:var(--muted);font-size:12px;">${escapeHtml(p.staff||'—')}</td>
+      <td><button class="btn-danger" data-id="${p.id}">አጥፋ / Delete</button></td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('.btn-danger').forEach(b=>{
+    b.addEventListener('click', ()=>deleteParticipant(b.dataset.id));
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function deleteParticipant(id){
+  if(!confirm('እርግጠኛ ነዎት? ይህ ደንበኛ ከዝርዝር ውስጥ ይጠፋል። / Delete this participant?')) return;
+  const fresh = (await storageGet(K_PARTICIPANTS)) || [];
+  const updated = fresh.filter(p=>p.id !== id);
+  const ok = await storageSet(K_PARTICIPANTS, updated);
+  if(ok){ participants = updated; refreshRegistryTable(); refreshRegisterStats(); }
+}
+
+document.getElementById('searchBox').addEventListener('input', refreshRegistryTable);
+document.getElementById('refreshRegistry').addEventListener('click', loadAll);
+document.getElementById('refreshDraw').addEventListener('click', async ()=>{ await loadAll(); setupDrawTab(); });
+
+/* ================= excel export / import ================= */
+document.getElementById('exportExcel').addEventListener('click', ()=>{
+  const ranged = computeRanges(participants);
+  const rows = ranged.map(p => ({
+    'ስም / Name': p.name,
+    'ስልክ / Phone': p.phone,
+    'የተከፈለ (ብር) / Amount (ETB)': p.amount,
+    'ቀን / Date': p.timestamp ? p.timestamp.slice(0,10) : '',
+    'ዕድል / Entries': p.entries,
+    'ትኬት ጀምሮ / Start Ticket': p.start,
+    'ትኬት እስከ / End Ticket': p.end,
+    'ሻጭ/ቅርንጫፍ / Staff': p.staff || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:22},{wch:16},{wch:16},{wch:12},{wch:10},{wch:12},{wch:12},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ደንበኞች_Entries');
+  const dateStr = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Raffle_Participants_${dateStr}.xlsx`);
+});
+
+document.getElementById('importExcelBtn').addEventListener('click', ()=>{
+  document.getElementById('importExcelFile').click();
+});
+
+document.getElementById('importExcelFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const msgEl = document.getElementById('importMsg');
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    // prefer a sheet literally named ደንበኞች_Entries, else first sheet
+    const sheetName = wb.SheetNames.find(n => n.includes('Entries') || n.includes('ደንበኞች')) || wb.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+
+    function findKey(row, needles){
+      const keys = Object.keys(row);
+      return keys.find(k => needles.some(n => k.toLowerCase().includes(n)));
+    }
+
+    const rate = settings.rate || 500;
+    const imported = [];
+    rows.forEach(row=>{
+      const nameKey = findKey(row, ['name','ስም']);
+      const phoneKey = findKey(row, ['phone','ስልክ']);
+      const amountKey = findKey(row, ['amount','ብር','ገንዘብ','payment','ክፍያ']);
+      const entriesKey = findKey(row, ['entries','ዕድል']);
+      const staffKey = findKey(row, ['staff','ሻጭ','ቅርንጫፍ']);
+      const dateKey = findKey(row, ['date','ቀን']);
+      if(!nameKey || !phoneKey) return;
+      const name = String(row[nameKey]).trim();
+      const phone = String(row[phoneKey]).trim();
+      if(!name || !phone) return;
+      const amount = amountKey ? parseFloat(row[amountKey]) || 0 : 0;
+      let entries = entriesKey ? parseInt(row[entriesKey]) || 0 : 0;
+      if(!entries && amount) entries = Math.floor(amount / rate);
+      if(entries < 1) return;
+      imported.push({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+        name, phone, amount, entries,
+        staff: staffKey ? String(row[staffKey]).trim() : '',
+        timestamp: dateKey && row[dateKey] ? new Date(row[dateKey]).toISOString() : new Date().toISOString()
+      });
+    });
+
+    if(imported.length === 0){
+      showMsg(msgEl, '⚠️ ምንም ተስማሚ ረድፍ አልተገኘም / No matching rows found in the file', false);
+    } else {
+      const fresh = (await storageGet(K_PARTICIPANTS)) || [];
+      const merged = fresh.concat(imported);
+      const ok = await storageSet(K_PARTICIPANTS, merged);
+      if(ok){
+        participants = merged;
+        showMsg(msgEl, `✅ ${imported.length} ደንበኛ ገብቷል / ${imported.length} customers imported`, true);
+        refreshRegisterStats();
+        refreshRegistryTable();
+      } else {
+        showMsg(msgEl, '❌ አልተቀመጠም፣ እንደገና ይሞክሩ / Failed to save imported data', false);
+      }
+    }
+  } catch(err){
+    console.error(err);
+    showMsg(msgEl, '❌ ፋይሉን ማንበብ አልተቻለም / Could not read the file', false);
+  }
+  e.target.value = '';
+});
+
+/* ================= settings ================= */
+function applySettingsToForm(){
+  document.getElementById('setRate').value = settings.rate;
+  document.getElementById('setPrize1').value = settings.prizes[0];
+  document.getElementById('setPrize2').value = settings.prizes[1];
+  document.getElementById('setPrize3').value = settings.prizes[2];
+  document.getElementById('setMask').checked = settings.maskPhone;
+}
+document.getElementById('saveSettings').addEventListener('click', async ()=>{
+  const msgEl = document.getElementById('setMsg');
+  const newSettings = {
+    rate: parseFloat(document.getElementById('setRate').value) || 500,
+    prizes: [
+      document.getElementById('setPrize1').value || '1ኛ ሽልማት',
+      document.getElementById('setPrize2').value || '2ኛ ሽልማት',
+      document.getElementById('setPrize3').value || '3ኛ ሽልማት'
+    ],
+    maskPhone: document.getElementById('setMask').checked
+  };
+  const ok = await storageSet(K_SETTINGS, newSettings);
+  if(ok){ settings = newSettings; showMsg(msgEl, '✅ ተቀምጧል / Saved', true); }
+  else { showMsg(msgEl, '❌ አልተቀመጠም፣ እንደገና ይሞክሩ / Failed to save', false); }
+});
+
+/* ================= draw ================= */
+const drawnTickets = new Set();
+let rangedForDraw = [];
+const tierMeta = [
+  {id:'tier1', rank:'🥇 1ኛ ሽልማት / 1st Prize'},
+  {id:'tier2', rank:'🥈 2ኛ ሽልማት / 2nd Prize'},
+  {id:'tier3', rank:'🥉 3ኛ ሽልማት / 3rd Prize'}
+];
+
+async function setupDrawTab(){
+  rangedForDraw = computeRanges(participants);
+  const totalEntries = rangedForDraw.reduce((s,p)=>s+p.entries,0);
+  document.getElementById('drawTotalPeople').textContent = rangedForDraw.length;
+  document.getElementById('drawTotalEntries').textContent = totalEntries;
+
+  const results = (await storageGet(K_RESULTS)) || {};
+
+  tierMeta.forEach((m,i)=>{
+    const prizeText = settings.prizes[i];
+    const el = document.getElementById(m.id);
+    el.innerHTML = `
+      <div class="win-flash" id="${m.id}-flash"></div>
+      <div class="tier-rank">${m.rank}</div>
+      <div class="tier-prize">${escapeHtml(prizeText)}</div>
+      <div class="reel-area" id="${m.id}-reel"></div>
+      <div class="tier-actions">
+        <button class="btn btn-primary" id="${m.id}-draw">ዕጣ አውጣ / Draw Winner</button>
+        <button class="btn btn-ghost" id="${m.id}-redraw" style="display:none;">🔁 እንደገና ዕጣ / Redraw</button>
+      </div>
+    `;
+    const reel = document.getElementById(`${m.id}-reel`);
+    const saved = results[m.id];
+    if(saved && saved.ticket){
+      drawnTickets.add(saved.ticket);
+      m._lastTicket = saved.ticket;
+      renderWinner(reel, saved.ticket, saved.name, saved.phone, totalEntries);
+      document.getElementById(`${m.id}-draw`).textContent = '↺ ደግመህ ጀምር / Draw Again';
+      document.getElementById(`${m.id}-redraw`).style.display = 'inline-flex';
+    } else {
+      reel.innerHTML = `<span class="reel-placeholder">${totalEntries>0 ? 'ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ / Press draw to begin' : 'ገና ምንም ተሳታፊ የለም / No participants yet'}</span>`;
+      document.getElementById(`${m.id}-draw`).disabled = totalEntries === 0;
+    }
+    document.getElementById(`${m.id}-draw`).onclick = () => runDraw(m, totalEntries, false);
+    document.getElementById(`${m.id}-redraw`).onclick = () => runDraw(m, totalEntries, true);
+  });
+}
+
+function ownerOfTicket(ticketNo){
+  for(const p of rangedForDraw){ if(ticketNo >= p.start && ticketNo <= p.end) return p; }
+  return null;
+}
+function maskedPhone(phone){
+  if(!settings.maskPhone) return phone;
+  if(phone.length <= 4) return phone;
+  return phone.slice(0,2) + '••• •••' + phone.slice(-3);
+}
+
+function runDraw(meta, totalEntries, isRedraw){
+  if(totalEntries === 0) return;
+  const reel = document.getElementById(`${meta.id}-reel`);
+  const drawBtn = document.getElementById(`${meta.id}-draw`);
+  const redrawBtn = document.getElementById(`${meta.id}-redraw`);
+  drawBtn.disabled = true; redrawBtn.style.display = 'none';
+  if(isRedraw && meta._lastTicket) drawnTickets.delete(meta._lastTicket);
+
+  reel.innerHTML = `<span class="reel-ticket spinning" id="${meta.id}-spin">----</span>`;
+  const spinEl = document.getElementById(`${meta.id}-spin`);
+  const digits = String(totalEntries).length;
+
+  let tick = 0; const totalTicks = 26;
+  function step(){
+    const r = 1 + Math.floor(Math.random()*totalEntries);
+    spinEl.textContent = '#' + String(r).padStart(digits,'0');
+    tick++;
+    if(tick < totalTicks){
+      const progress = tick / totalTicks;
+      setTimeout(step, 45 + Math.pow(progress, 2.2) * 260);
+    } else {
+      finalizeDraw(meta, reel, totalEntries, digits);
+    }
+  }
+  step();
+}
+
+async function finalizeDraw(meta, reel, totalEntries, digits){
+  let ticket, guard = 0;
+  do{ ticket = 1 + Math.floor(Math.random()*totalEntries); guard++; }
+  while(drawnTickets.has(ticket) && guard < 5000);
+  drawnTickets.add(ticket);
+  meta._lastTicket = ticket;
+  const owner = ownerOfTicket(ticket);
+
+  renderWinner(reel, ticket, owner ? owner.name : '—', owner ? owner.phone : '', totalEntries);
+
+  const flash = document.getElementById(`${meta.id}-flash`);
+  flash.classList.add('show'); setTimeout(()=>flash.classList.remove('show'), 900);
+  burstConfetti();
+
+  document.getElementById(`${meta.id}-draw`).disabled = false;
+  document.getElementById(`${meta.id}-draw`).textContent = '↺ ደግመህ ጀምር / Draw Again';
+  document.getElementById(`${meta.id}-redraw`).style.display = 'inline-flex';
+
+  const results = (await storageGet(K_RESULTS)) || {};
+  results[meta.id] = { ticket, name: owner?owner.name:'—', phone: owner?owner.phone:'', prize: settings.prizes[tierMeta.findIndex(t=>t.id===meta.id)], timestamp: new Date().toISOString() };
+  await storageSet(K_RESULTS, results);
+}
+
+function renderWinner(reel, ticket, name, phone, totalEntries){
+  const digits = String(totalEntries).length;
+  reel.innerHTML = `
+    <div><div class="reel-ticket">#${String(ticket).padStart(digits,'0')}</div></div>
+    <div class="reel-arrow">→</div>
+    <div class="reel-winner">
+      <p class="name">🎉 ${escapeHtml(name)}</p>
+      <p class="phone">${escapeHtml(maskedPhone(phone))}</p>
+    </div>
+  `;
+}
+
+function burstConfetti(){
+  const colors = ['#F2B705','#E85D3D','#F7D774','#FBF3DE'];
+  for(let i=0;i<40;i++){
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    d.style.left = (Math.random()*100) + 'vw';
+    d.style.background = colors[Math.floor(Math.random()*colors.length)];
+    d.style.animationDuration = (2 + Math.random()*1.5) + 's';
+    d.style.opacity = 0.7 + Math.random()*0.3;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 3600);
+  }
+}
+
+/* ================= excel export / import ================= */
+function exportToExcel(){
+  const ranged = computeRanges(participants);
+  if(ranged.length === 0){ alert('ገና ምንም ውሂብ የለም / No data to export yet'); return; }
+  const rows = ranged.map((p,i)=>({
+    'ተ.ቁ': i+1,
+    'የደንበኛ ስም': p.name,
+    'ስልክ ቁጥር': p.phone,
+    'የተከፈለ መጠን (ብር)': p.amount,
+    'ቀን': p.timestamp ? p.timestamp.slice(0,10) : '',
+    'ያገኘው ዕድል ብዛት': p.entries,
+    'የመጀመሪያ ትኬት ቁ.': p.start,
+    'የመጨረሻ ትኬት ቁ.': p.end,
+    'የመዘገበው ሻጭ/ቅርንጫፍ': p.staff || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:6},{wch:24},{wch:16},{wch:18},{wch:12},{wch:14},{wch:14},{wch:14},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ደንበኞች_Entries');
+  const stamp = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Raffle_Export_${stamp}.xlsx`);
+}
+document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+
+document.getElementById('importExcelBtn').addEventListener('click', ()=>{
+  document.getElementById('importExcelFile').click();
+});
+
+function findKey(row, keywords){
+  const keys = Object.keys(row);
+  return keys.find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
+}
+
+document.getElementById('importExcelFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const msgEl = document.getElementById('importMsg');
+  try{
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if(rows.length === 0){ showMsg(msgEl, '⚠️ ፋይሉ ባዶ ነው / File is empty', false); return; }
+
+    const nameKey = findKey(rows[0], ['ስም','name']);
+    const phoneKey = findKey(rows[0], ['ስልክ','phone']);
+    const amountKey = findKey(rows[0], ['ብር','amount','ግዢ','ክፍያ','paid']);
+
+    if(!nameKey || !phoneKey || !amountKey){
+      showMsg(msgEl, '❌ ስም/ስልክ/ብር ዓምዶች አልተገኙም — የፋይሉን ራስጌ ያረጋግጡ / Could not find Name/Phone/Amount columns', false);
+      return;
+    }
+
+    const rate = settings.rate || 500;
+    const fresh = (await storageGet(K_PARTICIPANTS)) || [];
+    let added = 0, skipped = 0;
+    rows.forEach(row=>{
+      const name = String(row[nameKey]||'').trim();
+      const phone = String(row[phoneKey]||'').trim();
+      const amount = parseFloat(row[amountKey]) || 0;
+      const entries = Math.floor(amount / rate);
+      if(!name || !phone || entries < 1){ skipped++; return; }
+      fresh.push({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+        name, phone, amount, entries, staff: 'Excel Import',
+        timestamp: new Date().toISOString()
+      });
+      added++;
+    });
+
+    if(added > 0){
+      const ok = await storageSet(K_PARTICIPANTS, fresh);
+      if(ok){
+        participants = fresh;
+        refreshRegistryTable(); refreshRegisterStats();
+        showMsg(msgEl, `✅ ${added} ደንበኛ ገብቷል${skipped>0 ? `፣ ${skipped} ተዘልሏል (በቂ ያልሆነ መረጃ)`:''} / Imported ${added}${skipped>0?`, skipped ${skipped}`:''}`, true);
+      } else {
+        showMsg(msgEl, '❌ አልተቀመጠም፣ እንደገና ይሞክሩ / Failed to save', false);
+      }
+    } else {
+      showMsg(msgEl, '⚠️ ምንም አዲስ ተሳታፊ አልተገኘም / No valid rows found', false);
+    }
+  }catch(err){
+    console.error(err);
+    showMsg(msgEl, '❌ ፋይሉን ማንበብ አልተቻለም / Could not read the file', false);
+  } finally {
+    e.target.value = '';
+  }
+});
+
+/* ================= init ================= */
+loadAll();
+
+/* ================= PWA install & service worker ================= */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBar').style.display = 'block';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBar').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBar').style.display = 'none';
+});
+
+// iOS Safari has no beforeinstallprompt — show manual instructions instead
+(function(){
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  if (isIOS && !isStandalone) {
+    document.getElementById('iosHint').style.display = 'block';
+  }
+})();
+
+if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
