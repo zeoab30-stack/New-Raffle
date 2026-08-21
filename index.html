@@ -15,8 +15,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Noto+Sans+Ethiopic:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --bg-deep:#0B1F17;
@@ -269,23 +269,21 @@
 </div>
 
 <script>
-/* ================= storage helpers ================= */
-const K_SETTINGS = 'raffle:settings';
-const K_PARTICIPANTS = 'raffle:participants';
-const K_RESULTS = 'raffle:draw_results';
-
-async function storageGet(key){
-  try{
-    const r = await window.storage.get(key, true);
-    return r ? JSON.parse(r.value) : null;
-  }catch(e){ return null; }
-}
-async function storageSet(key, value){
-  try{
-    const r = await window.storage.set(key, JSON.stringify(value), true);
-    return !!r;
-  }catch(e){ console.error('storage set failed', e); return false; }
-}
+/* ================= Firebase setup ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCeZCvsCumjvzzJ-QKkGMNZCsieUA08czA",
+  authDomain: "new-raffle-c8912.firebaseapp.com",
+  projectId: "new-raffle-c8912",
+  storageBucket: "new-raffle-c8912.firebasestorage.app",
+  messagingSenderId: "856787096249",
+  appId: "1:856787096249:web:fcae3dccd1eeefe4148168",
+  measurementId: "G-N1R5JW5GT7"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const settingsRef = db.collection('raffle').doc('settings');
+const resultsRef = db.collection('raffle').doc('draw_results');
+const participantsRef = db.collection('raffle_participants');
 
 const DEFAULT_SETTINGS = {
   rate: 500,
@@ -309,17 +307,39 @@ function computeRanges(list){
   });
 }
 
+function setSyncNote(text){
+  document.getElementById('syncNote').textContent = text;
+}
+
 async function loadAll(){
-  const s = await storageGet(K_SETTINGS);
-  settings = s || DEFAULT_SETTINGS;
-  const p = await storageGet(K_PARTICIPANTS);
-  participants = p || [];
-  document.getElementById('syncNote').textContent =
-    `የተመሳሰለ ውሂብ / synced — ${new Date().toLocaleTimeString('en-GB')}`;
+  setSyncNote('በመጫን ላይ... / connecting...');
+  try{
+    const s = await settingsRef.get();
+    if(s.exists){
+      settings = s.data();
+    } else {
+      settings = DEFAULT_SETTINGS;
+      await settingsRef.set(DEFAULT_SETTINGS);
+    }
+  }catch(e){ console.error('settings load failed', e); settings = DEFAULT_SETTINGS; }
+  applySettingsToForm();
   refreshRegisterStats();
   refreshRegistryTable();
-  applySettingsToForm();
+  setSyncNote('✅ ተገናኝቷል / connected — ' + new Date().toLocaleTimeString('en-GB'));
 }
+
+// Real-time listener: any device's registration appears everywhere instantly
+participantsRef.orderBy('timestamp', 'asc').onSnapshot((snap)=>{
+  participants = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  refreshRegisterStats();
+  refreshRegistryTable();
+  setSyncNote('✅ የቀጥታ ውሂብ / live sync — ' + new Date().toLocaleTimeString('en-GB'));
+  const drawPanel = document.getElementById('panel-draw');
+  if(drawPanel && drawPanel.classList.contains('active')) setupDrawTab();
+}, (err)=>{
+  console.error('participants listener failed', err);
+  setSyncNote('⚠️ ውሂብ ማምጣት አልተቻለም / sync error — check Firestore rules');
+});
 
 /* ================= tabs ================= */
 document.querySelectorAll('nav button').forEach(btn=>{
@@ -367,25 +387,26 @@ document.getElementById('regSubmit').addEventListener('click', async ()=>{
   const btn = document.getElementById('regSubmit');
   btn.disabled = true; btn.textContent = 'በመመዝገብ ላይ... / Saving...';
 
-  // reload fresh list to reduce overwrite risk, then append
-  const fresh = (await storageGet(K_PARTICIPANTS)) || [];
-  fresh.push({
-    id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
-    name, phone, amount, entries, staff,
-    timestamp: new Date().toISOString()
-  });
-  const saved = await storageSet(K_PARTICIPANTS, fresh);
+  let saved = true;
+  try{
+    await participantsRef.add({
+      name, phone, amount, entries, staff,
+      timestamp: new Date().toISOString()
+    });
+  }catch(e){
+    console.error('add participant failed', e);
+    saved = false;
+  }
   btn.disabled = false; btn.textContent = '✅ መዝግብ / Register Entry';
 
   if(saved){
-    participants = fresh;
     showMsg(msgEl, `🎉 ተመዝግቧል! ${name} — ${entries} ዕድል አግኝቷል / Registered — ${entries} entries`, true);
     document.getElementById('regName').value = '';
     document.getElementById('regPhone').value = '';
     document.getElementById('regAmount').value = '';
     document.getElementById('regStaff').value = '';
     document.getElementById('entriesPreview').textContent = '';
-    refreshRegisterStats();
+    // participants + stats update automatically via the onSnapshot listener
   } else {
     showMsg(msgEl, '❌ ስህተት ተፈጥሯል፣ እንደገና ይሞክሩ / Something went wrong, please retry', false);
   }
@@ -428,10 +449,13 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<
 
 async function deleteParticipant(id){
   if(!confirm('እርግጠኛ ነዎት? ይህ ደንበኛ ከዝርዝር ውስጥ ይጠፋል። / Delete this participant?')) return;
-  const fresh = (await storageGet(K_PARTICIPANTS)) || [];
-  const updated = fresh.filter(p=>p.id !== id);
-  const ok = await storageSet(K_PARTICIPANTS, updated);
-  if(ok){ participants = updated; refreshRegistryTable(); refreshRegisterStats(); }
+  try{
+    await participantsRef.doc(id).delete();
+    // list + stats update automatically via the onSnapshot listener
+  }catch(e){
+    console.error('delete failed', e);
+    alert('❌ ማጥፋት አልተቻለም / Could not delete');
+  }
 }
 
 document.getElementById('searchBox').addEventListener('input', refreshRegistryTable);
@@ -507,15 +531,18 @@ document.getElementById('importExcelFile').addEventListener('change', async (e)=
     if(imported.length === 0){
       showMsg(msgEl, '⚠️ ምንም ተስማሚ ረድፍ አልተገኘም / No matching rows found in the file', false);
     } else {
-      const fresh = (await storageGet(K_PARTICIPANTS)) || [];
-      const merged = fresh.concat(imported);
-      const ok = await storageSet(K_PARTICIPANTS, merged);
-      if(ok){
-        participants = merged;
+      try{
+        const batch = db.batch();
+        imported.forEach(rec => {
+          const { id, ...data } = rec;
+          const docRef = participantsRef.doc();
+          batch.set(docRef, data);
+        });
+        await batch.commit();
         showMsg(msgEl, `✅ ${imported.length} ደንበኛ ገብቷል / ${imported.length} customers imported`, true);
-        refreshRegisterStats();
-        refreshRegistryTable();
-      } else {
+        // list + stats update automatically via the onSnapshot listener
+      }catch(e){
+        console.error('import batch failed', e);
         showMsg(msgEl, '❌ አልተቀመጠም፣ እንደገና ይሞክሩ / Failed to save imported data', false);
       }
     }
@@ -545,7 +572,8 @@ document.getElementById('saveSettings').addEventListener('click', async ()=>{
     ],
     maskPhone: document.getElementById('setMask').checked
   };
-  const ok = await storageSet(K_SETTINGS, newSettings);
+  let ok = true;
+  try{ await settingsRef.set(newSettings); }catch(e){ console.error('save settings failed', e); ok = false; }
   if(ok){ settings = newSettings; showMsg(msgEl, '✅ ተቀምጧል / Saved', true); }
   else { showMsg(msgEl, '❌ አልተቀመጠም፣ እንደገና ይሞክሩ / Failed to save', false); }
 });
@@ -565,7 +593,11 @@ async function setupDrawTab(){
   document.getElementById('drawTotalPeople').textContent = rangedForDraw.length;
   document.getElementById('drawTotalEntries').textContent = totalEntries;
 
-  const results = (await storageGet(K_RESULTS)) || {};
+  const results = {};
+  try{
+    const r = await resultsRef.get();
+    Object.assign(results, r.exists ? r.data() : {});
+  }catch(e){ console.error('load results failed', e); }
 
   tierMeta.forEach((m,i)=>{
     const prizeText = settings.prizes[i];
@@ -652,9 +684,10 @@ async function finalizeDraw(meta, reel, totalEntries, digits){
   document.getElementById(`${meta.id}-draw`).textContent = '↺ ደግመህ ጀምር / Draw Again';
   document.getElementById(`${meta.id}-redraw`).style.display = 'inline-flex';
 
-  const results = (await storageGet(K_RESULTS)) || {};
-  results[meta.id] = { ticket, name: owner?owner.name:'—', phone: owner?owner.phone:'', prize: settings.prizes[tierMeta.findIndex(t=>t.id===meta.id)], timestamp: new Date().toISOString() };
-  await storageSet(K_RESULTS, results);
+  const resultEntry = { ticket, name: owner?owner.name:'—', phone: owner?owner.phone:'', prize: settings.prizes[tierMeta.findIndex(t=>t.id===meta.id)], timestamp: new Date().toISOString() };
+  try{
+    await resultsRef.set({ [meta.id]: resultEntry }, { merge: true });
+  }catch(e){ console.error('save result failed', e); }
 }
 
 function renderWinner(reel, ticket, name, phone, totalEntries){
@@ -682,96 +715,6 @@ function burstConfetti(){
     setTimeout(()=>d.remove(), 3600);
   }
 }
-
-/* ================= excel export / import ================= */
-function exportToExcel(){
-  const ranged = computeRanges(participants);
-  if(ranged.length === 0){ alert('ገና ምንም ውሂብ የለም / No data to export yet'); return; }
-  const rows = ranged.map((p,i)=>({
-    'ተ.ቁ': i+1,
-    'የደንበኛ ስም': p.name,
-    'ስልክ ቁጥር': p.phone,
-    'የተከፈለ መጠን (ብር)': p.amount,
-    'ቀን': p.timestamp ? p.timestamp.slice(0,10) : '',
-    'ያገኘው ዕድል ብዛት': p.entries,
-    'የመጀመሪያ ትኬት ቁ.': p.start,
-    'የመጨረሻ ትኬት ቁ.': p.end,
-    'የመዘገበው ሻጭ/ቅርንጫፍ': p.staff || ''
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:6},{wch:24},{wch:16},{wch:18},{wch:12},{wch:14},{wch:14},{wch:14},{wch:20}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'ደንበኞች_Entries');
-  const stamp = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `Raffle_Export_${stamp}.xlsx`);
-}
-document.getElementById('exportExcel').addEventListener('click', exportToExcel);
-
-document.getElementById('importExcelBtn').addEventListener('click', ()=>{
-  document.getElementById('importExcelFile').click();
-});
-
-function findKey(row, keywords){
-  const keys = Object.keys(row);
-  return keys.find(k => keywords.some(kw => k.toLowerCase().includes(kw)));
-}
-
-document.getElementById('importExcelFile').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const msgEl = document.getElementById('importMsg');
-  try{
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data, {type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-    if(rows.length === 0){ showMsg(msgEl, '⚠️ ፋይሉ ባዶ ነው / File is empty', false); return; }
-
-    const nameKey = findKey(rows[0], ['ስም','name']);
-    const phoneKey = findKey(rows[0], ['ስልክ','phone']);
-    const amountKey = findKey(rows[0], ['ብር','amount','ግዢ','ክፍያ','paid']);
-
-    if(!nameKey || !phoneKey || !amountKey){
-      showMsg(msgEl, '❌ ስም/ስልክ/ብር ዓምዶች አልተገኙም — የፋይሉን ራስጌ ያረጋግጡ / Could not find Name/Phone/Amount columns', false);
-      return;
-    }
-
-    const rate = settings.rate || 500;
-    const fresh = (await storageGet(K_PARTICIPANTS)) || [];
-    let added = 0, skipped = 0;
-    rows.forEach(row=>{
-      const name = String(row[nameKey]||'').trim();
-      const phone = String(row[phoneKey]||'').trim();
-      const amount = parseFloat(row[amountKey]) || 0;
-      const entries = Math.floor(amount / rate);
-      if(!name || !phone || entries < 1){ skipped++; return; }
-      fresh.push({
-        id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
-        name, phone, amount, entries, staff: 'Excel Import',
-        timestamp: new Date().toISOString()
-      });
-      added++;
-    });
-
-    if(added > 0){
-      const ok = await storageSet(K_PARTICIPANTS, fresh);
-      if(ok){
-        participants = fresh;
-        refreshRegistryTable(); refreshRegisterStats();
-        showMsg(msgEl, `✅ ${added} ደንበኛ ገብቷል${skipped>0 ? `፣ ${skipped} ተዘልሏል (በቂ ያልሆነ መረጃ)`:''} / Imported ${added}${skipped>0?`, skipped ${skipped}`:''}`, true);
-      } else {
-        showMsg(msgEl, '❌ አልተቀመጠም፣ እንደገና ይሞክሩ / Failed to save', false);
-      }
-    } else {
-      showMsg(msgEl, '⚠️ ምንም አዲስ ተሳታፊ አልተገኘም / No valid rows found', false);
-    }
-  }catch(err){
-    console.error(err);
-    showMsg(msgEl, '❌ ፋይሉን ማንበብ አልተቻለም / Could not read the file', false);
-  } finally {
-    e.target.value = '';
-  }
-});
 
 /* ================= init ================= */
 loadAll();
