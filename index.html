@@ -139,6 +139,18 @@
 
   .prize-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
   @media(max-width:700px){.prize-grid{grid-template-columns:1fr;}}
+  .prize-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .prize-row .prize-rank{
+    font-family:'Space Mono',monospace;font-size:12px;color:var(--gold-soft);
+    min-width:38px;text-align:center;
+  }
+  .prize-row input{margin-bottom:0;flex:1;}
+  .prize-row .removeBtn{
+    background:transparent;border:1px solid #E8604A55;color:#E8604A;
+    border-radius:8px;padding:10px 12px;cursor:pointer;font-size:13px;flex-shrink:0;
+  }
+  .prize-row .removeBtn:hover{background:#E8604A18;}
+  .prize-row .removeBtn:disabled{opacity:.3;cursor:not-allowed;}
 
   footer{text-align:center;color:var(--muted);font-size:11.5px;margin-top:30px;font-family:'Space Mono',monospace;}
   .sync-note{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);text-align:center;margin-top:-10px;margin-bottom:18px;}
@@ -230,9 +242,7 @@
   <!-- ============ DRAW ============ -->
   <section class="panel" id="panel-draw">
     <div class="total-banner">ጠቅላላ ተሳታፊ <b id="drawTotalPeople">0</b> ፣ ጠቅላላ ዕድል (ትኬት) <b id="drawTotalEntries">0</b></div>
-    <div class="tier" id="tier1"></div>
-    <div class="tier" id="tier2"></div>
-    <div class="tier" id="tier3"></div>
+    <div id="tiersContainer"></div>
     <div style="text-align:center;">
       <button class="btn btn-ghost" id="refreshDraw">🔄 ተሳታፊ ዝርዝር አድስ / Refresh Participant Data</button>
     </div>
@@ -247,11 +257,9 @@
     </div>
     <div class="card">
       <h2>ሽልማቶች / Prizes</h2>
-      <div class="prize-grid">
-        <div><label>🥇 1ኛ ሽልማት / 1st Prize</label><input type="text" id="setPrize1"></div>
-        <div><label>🥈 2ኛ ሽልማት / 2nd Prize</label><input type="text" id="setPrize2"></div>
-        <div><label>🥉 3ኛ ሽልማት / 3rd Prize</label><input type="text" id="setPrize3"></div>
-      </div>
+      <p class="hint">ሽልማት ለመጨመር ወይም ለማጥፋት ከታች ያሉትን ቁልፎች ይጠቀሙ።<br>Use the buttons below to add or remove prize tiers.</p>
+      <div id="prizeList"></div>
+      <button type="button" class="btn btn-ghost" id="addPrizeBtn" style="margin-top:6px;">➕ ሽልማት ጨምር / Add Prize</button>
     </div>
     <div class="card">
       <h2>ግላዊነት / Privacy</h2>
@@ -259,6 +267,11 @@
         <input type="checkbox" id="setMask" style="width:auto;margin:0;accent-color:#F2B705;">
         በዕጣ ስክሪን ላይ ስልክ በከፊል ደብቅ / Mask phone numbers on the draw screen
       </label>
+    </div>
+    <div class="card">
+      <h2>🔒 የአስተዳዳሪ ኮድ / Admin PIN</h2>
+      <p class="hint">"ዕጣ" እና "ማስተካከያ" ገጾችን ለመክፈት የሚያስፈልግ ኮድ። ለራስዎ ብቻ ይያዙት።<br>Required to open the "Draw" and "Settings" tabs. Keep this private.</p>
+      <input type="text" id="setPin" maxlength="12" placeholder="1234">
     </div>
     <div id="setMsg" class="msg"></div>
     <button class="btn btn-primary" id="saveSettings">💾 አስቀምጥ / Save Settings</button>
@@ -292,7 +305,8 @@ const DEFAULT_SETTINGS = {
     'የኃይል መሳሪያ ስብስብ (Grinder + Drill + Saw)',
     'የግንባታ የእጅ መሳሪያ ኪት (Hand Tool Kit)'
   ],
-  maskPhone: true
+  maskPhone: true,
+  adminPin: '1234'
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -341,9 +355,29 @@ participantsRef.orderBy('timestamp', 'asc').onSnapshot((snap)=>{
   setSyncNote('⚠️ ውሂብ ማምጣት አልተቻለም / sync error — check Firestore rules');
 });
 
+/* ================= admin lock ================= */
+const ADMIN_TABS = ['draw', 'settings'];
+function isAdminUnlocked(){
+  return sessionStorage.getItem('raffle_admin_ok') === '1';
+}
+function requestAdminAccess(){
+  if(isAdminUnlocked()) return true;
+  const pin = prompt('🔒 የአስተዳዳሪ ኮድ (PIN) ያስገቡ / Enter admin PIN:');
+  if(pin === null) return false;
+  if(pin === (settings.adminPin || DEFAULT_SETTINGS.adminPin)){
+    sessionStorage.setItem('raffle_admin_ok', '1');
+    return true;
+  }
+  alert('❌ ትክክል ያልሆነ ኮድ / Incorrect PIN');
+  return false;
+}
+
 /* ================= tabs ================= */
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
+    if(ADMIN_TABS.includes(btn.dataset.tab) && !requestAdminAccess()){
+      return; // stay on current tab, wrong/cancelled PIN
+    }
     document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
@@ -448,6 +482,7 @@ function refreshRegistryTable(){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 async function deleteParticipant(id){
+  if(!requestAdminAccess()) return;
   if(!confirm('እርግጠኛ ነዎት? ይህ ደንበኛ ከዝርዝር ውስጥ ይጠፋል። / Delete this participant?')) return;
   try{
     await participantsRef.doc(id).delete();
@@ -554,23 +589,68 @@ document.getElementById('importExcelFile').addEventListener('change', async (e)=
 });
 
 /* ================= settings ================= */
+function ordinalAm(n){ return n + 'ኛ'; }
+function ordinalEn(n){
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+function medalFor(n){
+  return n===1 ? '🥇' : n===2 ? '🥈' : n===3 ? '🥉' : '🏅';
+}
+
+let editingPrizes = [];
+
+function renderPrizeInputs(){
+  const list = document.getElementById('prizeList');
+  list.innerHTML = '';
+  editingPrizes.forEach((prizeText, i)=>{
+    const row = document.createElement('div');
+    row.className = 'prize-row';
+    row.innerHTML = `
+      <span class="prize-rank">${medalFor(i+1)} ${ordinalAm(i+1)}</span>
+      <input type="text" data-idx="${i}" value="${escapeHtml(prizeText)}" placeholder="${ordinalEn(i+1)} Prize">
+      <button type="button" class="removeBtn" data-idx="${i}" ${editingPrizes.length<=1?'disabled':''}>✕</button>
+    `;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      editingPrizes[parseInt(e.target.dataset.idx)] = e.target.value;
+    });
+  });
+  list.querySelectorAll('.removeBtn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      if(editingPrizes.length <= 1) return;
+      editingPrizes.splice(parseInt(e.target.dataset.idx), 1);
+      renderPrizeInputs();
+    });
+  });
+}
+document.getElementById('addPrizeBtn').addEventListener('click', ()=>{
+  editingPrizes.push('');
+  renderPrizeInputs();
+});
+
 function applySettingsToForm(){
   document.getElementById('setRate').value = settings.rate;
-  document.getElementById('setPrize1').value = settings.prizes[0];
-  document.getElementById('setPrize2').value = settings.prizes[1];
-  document.getElementById('setPrize3').value = settings.prizes[2];
+  editingPrizes = [...(settings.prizes && settings.prizes.length ? settings.prizes : DEFAULT_SETTINGS.prizes)];
+  renderPrizeInputs();
   document.getElementById('setMask').checked = settings.maskPhone;
+  document.getElementById('setPin').value = settings.adminPin || DEFAULT_SETTINGS.adminPin;
 }
 document.getElementById('saveSettings').addEventListener('click', async ()=>{
   const msgEl = document.getElementById('setMsg');
+  const cleanedPrizes = editingPrizes.map((p,i)=>p.trim() || `${ordinalAm(i+1)} ሽልማት`);
+  if(cleanedPrizes.length === 0){
+    showMsg(msgEl, '⚠️ ቢያንስ 1 ሽልማት ያስፈልጋል / At least 1 prize is required', false);
+    return;
+  }
   const newSettings = {
     rate: parseFloat(document.getElementById('setRate').value) || 500,
-    prizes: [
-      document.getElementById('setPrize1').value || '1ኛ ሽልማት',
-      document.getElementById('setPrize2').value || '2ኛ ሽልማት',
-      document.getElementById('setPrize3').value || '3ኛ ሽልማት'
-    ],
-    maskPhone: document.getElementById('setMask').checked
+    prizes: cleanedPrizes,
+    maskPhone: document.getElementById('setMask').checked,
+    adminPin: (document.getElementById('setPin').value || '').trim() || DEFAULT_SETTINGS.adminPin
   };
   let ok = true;
   try{ await settingsRef.set(newSettings); }catch(e){ console.error('save settings failed', e); ok = false; }
@@ -581,11 +661,7 @@ document.getElementById('saveSettings').addEventListener('click', async ()=>{
 /* ================= draw ================= */
 const drawnTickets = new Set();
 let rangedForDraw = [];
-const tierMeta = [
-  {id:'tier1', rank:'🥇 1ኛ ሽልማት / 1st Prize'},
-  {id:'tier2', rank:'🥈 2ኛ ሽልማት / 2nd Prize'},
-  {id:'tier3', rank:'🥉 3ኛ ሽልማት / 3rd Prize'}
-];
+let tierMeta = [];
 
 async function setupDrawTab(){
   rangedForDraw = computeRanges(participants);
@@ -599,8 +675,14 @@ async function setupDrawTab(){
     Object.assign(results, r.exists ? r.data() : {});
   }catch(e){ console.error('load results failed', e); }
 
+  const prizes = (settings.prizes && settings.prizes.length) ? settings.prizes : DEFAULT_SETTINGS.prizes;
+  tierMeta = prizes.map((_, i) => ({ id: `tier${i+1}`, rank: `${medalFor(i+1)} ${ordinalAm(i+1)} ሽልማት / ${ordinalEn(i+1)} Prize` }));
+
+  const container = document.getElementById('tiersContainer');
+  container.innerHTML = tierMeta.map(m => `<div class="tier" id="${m.id}"></div>`).join('');
+
   tierMeta.forEach((m,i)=>{
-    const prizeText = settings.prizes[i];
+    const prizeText = prizes[i];
     const el = document.getElementById(m.id);
     el.innerHTML = `
       <div class="win-flash" id="${m.id}-flash"></div>
