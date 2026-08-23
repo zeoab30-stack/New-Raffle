@@ -1,7 +1,7 @@
 {
-  "name": "Zeo Lottery - የአዲስ ዓመት ዕጣ",
+  "name": "Zeo Lottery - የዕጣ ሽልማት",
   "short_name": "Zeo Lottery",
-  "description": "Zeo Lottery — customer raffle registration and live prize draw for the Ethiopian New Year promotion",
+  "description": "Zeo Lottery — customer raffle registration and live prize draw for Zeo promotions",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

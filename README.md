@@ -1,4 +1,4 @@
-# 🅩 Zeo Lottery / የአዲስ ዓመት ዕጣ
+# 🅩 Zeo Lottery / የዕጣ ሽልማት
 
 ## ይህ ምንድን ነው? / What is this?
 
@@ -99,4 +99,4 @@ allow write: if false;
 ማንኛውም ለውጥ (አዲስ ገጽ፣ አዲስ ሽልማት አይነት፣ ዲዛይን ማስተካከያ) ካስፈለገ Claude chat ውስጥ ጠይቁ — `index.html` ተስተካክሎ ይላካል፣ በ GitHub ላይ ያለውን ፋይል በአዲሱ ብቻ ይተኩ (replace)።
 
 ---
-*Built for the Ethiopian New Year 2019 E.C. raffle promotion.*
+*Zeo Lottery — reusable for any Zeo customer raffle or promotion.*
