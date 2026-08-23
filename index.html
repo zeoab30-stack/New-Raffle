@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>የአዲስ ዓመት ዕጣ መተግበሪያ</title>
+<title>Zeo Lottery</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0B1F17">
 <link rel="icon" href="icon-192.png" type="image/png">
@@ -11,7 +11,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ዕጣ App">
+<meta name="apple-mobile-web-app-title" content="Zeo Lottery">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Noto+Sans+Ethiopic:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -125,6 +125,24 @@
   .tier-rank{font-family:'Fraunces',serif;font-weight:900;font-size:14px;color:var(--gold);letter-spacing:.05em;text-transform:uppercase;}
   .tier-prize{font-size:14.5px;color:var(--cream);margin-top:2px;}
   .reel-area{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;padding:20px 10px;background:#08150F;border-radius:14px;border:1px solid #1E3C2E;min-height:120px;margin-top:16px;}
+  .slot-wrap{display:flex;align-items:center;gap:6px;}
+  .slot-hash{font-family:'Space Mono',monospace;font-size:clamp(24px,5vw,36px);font-weight:700;color:var(--muted);margin-right:2px;}
+  .digit-col{
+    width:clamp(28px,7vw,40px);height:56px;overflow:hidden;position:relative;
+    background:linear-gradient(180deg,#0A1B14,#0D2117);border:1px solid #24422F;border-radius:8px;
+    box-shadow:inset 0 6px 10px -6px #00000090, inset 0 -6px 10px -6px #00000090;
+    transition:box-shadow .3s ease, border-color .3s ease;
+  }
+  .digit-col.locked{border-color:var(--gold);box-shadow:0 0 14px -2px #F2B70566, inset 0 6px 10px -6px #00000090, inset 0 -6px 10px -6px #00000090;}
+  .digit-strip{display:flex;flex-direction:column;will-change:transform;}
+  .digit-strip .d{
+    height:56px;display:flex;align-items:center;justify-content:center;
+    font-family:'Space Mono',monospace;font-weight:700;font-size:clamp(22px,5vw,30px);color:var(--gold-soft);
+  }
+  .digit-col::after{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg, #08150Fcc 0%, transparent 30%, transparent 70%, #08150Fcc 100%);
+  }
   .reel-ticket{font-family:'Space Mono',monospace;font-size:clamp(26px,5.5vw,42px);font-weight:700;color:var(--gold-soft);letter-spacing:.06em;text-shadow:0 0 24px #F2B70555;}
   .reel-ticket.spinning{color:var(--muted);text-shadow:none;}
   .reel-arrow{color:var(--muted);font-size:20px;}
@@ -160,8 +178,8 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">Ethiopian New Year · 2019 ዓ.ም</div>
-    <h1>🌼 የዕጣ መተግበሪያ</h1>
-    <div class="sub">Registration + Live Draw — shared across every device</div>
+    <h1>Zeo Lottery</h1>
+    <div class="sub">🌼 New Year Raffle — Registration + Live Draw, shared across every device</div>
   </header>
 
   <nav>
@@ -293,7 +311,7 @@
     <p class="hint" style="margin-top:20px;">⚠️ ይህ ማስተካከያ ለሁሉም መሳሪያ ይተገበራል። / These settings apply to every device using this app.</p>
   </section>
 
-  <footer>የግንባታ ኩባንያ · New Year Raffle Application — shared, live, transparent</footer>
+  <footer>Zeo Lottery · shared, live, transparent</footer>
 </div>
 
 <script>
@@ -756,6 +774,27 @@ function maskedPhone(phone){
   return phone.slice(0,2) + '••• •••' + phone.slice(-3);
 }
 
+const DIGIT_H = 56; // px — must match .digit-col height in CSS
+
+function buildDigitColumn(finalDigit){
+  const col = document.createElement('div');
+  col.className = 'digit-col';
+  const strip = document.createElement('div');
+  strip.className = 'digit-strip';
+  const cycles = 7 + Math.floor(Math.random()*3);
+  const seq = [];
+  for(let c=0;c<cycles;c++){ for(let d=0; d<=9; d++) seq.push(d); }
+  for(let d=0; d<=finalDigit; d++) seq.push(d);
+  seq.forEach(d=>{
+    const span = document.createElement('div');
+    span.className = 'd';
+    span.textContent = d;
+    strip.appendChild(span);
+  });
+  col.appendChild(strip);
+  return { col, strip, steps: seq.length };
+}
+
 function runDraw(meta, totalEntries, isRedraw){
   if(totalEntries === 0) return;
   const reel = document.getElementById(`${meta.id}-reel`);
@@ -764,31 +803,43 @@ function runDraw(meta, totalEntries, isRedraw){
   drawBtn.disabled = true; redrawBtn.style.display = 'none';
   if(isRedraw && meta._lastTicket) drawnTickets.delete(meta._lastTicket);
 
-  reel.innerHTML = `<span class="reel-ticket spinning" id="${meta.id}-spin">----</span>`;
-  const spinEl = document.getElementById(`${meta.id}-spin`);
-  const digits = String(totalEntries).length;
-
-  let tick = 0; const totalTicks = 26;
-  function step(){
-    const r = 1 + Math.floor(Math.random()*totalEntries);
-    spinEl.textContent = '#' + String(r).padStart(digits,'0');
-    tick++;
-    if(tick < totalTicks){
-      const progress = tick / totalTicks;
-      setTimeout(step, 45 + Math.pow(progress, 2.2) * 260);
-    } else {
-      finalizeDraw(meta, reel, totalEntries, digits);
-    }
-  }
-  step();
-}
-
-async function finalizeDraw(meta, reel, totalEntries, digits){
+  // pick the winning ticket up front so the reels can spin toward it
   let ticket, guard = 0;
   do{ ticket = 1 + Math.floor(Math.random()*totalEntries); guard++; }
   while(drawnTickets.has(ticket) && guard < 5000);
   drawnTickets.add(ticket);
   meta._lastTicket = ticket;
+
+  const digits = String(totalEntries).length;
+  const ticketStr = String(ticket).padStart(digits,'0');
+
+  reel.innerHTML = '';
+  const hashEl = document.createElement('span');
+  hashEl.className = 'slot-hash';
+  hashEl.textContent = '#';
+  const wrap = document.createElement('div');
+  wrap.className = 'slot-wrap';
+  wrap.appendChild(hashEl);
+
+  const cols = ticketStr.split('').map(ch => buildDigitColumn(parseInt(ch,10)));
+  cols.forEach(c => wrap.appendChild(c.col));
+  reel.appendChild(wrap);
+
+  requestAnimationFrame(()=>{
+    cols.forEach((c,i)=>{
+      const duration = 900 + i*450 + Math.random()*150;
+      c.strip.style.transition = `transform ${duration}ms cubic-bezier(0.12,0.85,0.32,1)`;
+      c.strip.style.transform = `translateY(-${(c.steps-1)*DIGIT_H}px)`;
+      // tick a soft highlight on this column as it locks in
+      setTimeout(()=>{ c.col.classList.add('locked'); }, duration);
+    });
+  });
+
+  const maxDuration = 900 + (cols.length-1)*450 + 550;
+  setTimeout(()=> finalizeDraw(meta, reel, totalEntries, ticket), maxDuration);
+}
+
+async function finalizeDraw(meta, reel, totalEntries, ticket){
   const owner = ownerOfTicket(ticket);
 
   renderWinner(reel, ticket, owner ? owner.name : '—', owner ? owner.phone : '', totalEntries);

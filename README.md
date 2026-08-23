@@ -1,4 +1,4 @@
-# 🌼 የአዲስ ዓመት ዕጣ መተግበሪያ / New Year Raffle App
+# 🅩 Zeo Lottery / የአዲስ ዓመት ዕጣ
 
 ## ይህ ምንድን ነው? / What is this?
 
@@ -91,7 +91,7 @@ allow write: if false;
 - `index.html` — ዋናው መተግበሪያ (upload this to GitHub)
 - `manifest.json` — PWA installability config
 - `sw.js` — offline caching (service worker)
-- `icon-192.png`, `icon-512.png` — app icons
+- `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` — Zeo Lottery app icons/logo
 - `README.md` — this file
 
 ## 🔧 ወደፊት ማሻሻያ / Future Changes
