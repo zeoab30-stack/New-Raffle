@@ -197,6 +197,21 @@
           <input type="number" id="regAmount" placeholder="1500" min="0">
         </div>
       </div>
+      <div class="field-row">
+        <div>
+          <label>የክፍያ መንገድ / Payment Method</label>
+          <select id="regPayMethod" style="width:100%;background:#0A1B14;border:1px solid var(--line);border-radius:9px;color:var(--cream);font-family:'Noto Sans Ethiopic',sans-serif;font-size:14.5px;padding:12px 14px;margin-bottom:16px;">
+            <option value="ጥሬ ገንዘብ / Cash">💵 ጥሬ ገንዘብ / Cash</option>
+            <option value="telebirr">📱 telebirr</option>
+            <option value="ባንክ ማስተላለፍ / Bank Transfer">🏦 ባንክ ማስተላለፍ / Bank Transfer</option>
+            <option value="ሌላ / Other">➕ ሌላ / Other</option>
+          </select>
+        </div>
+        <div id="telebirrRefWrap" style="display:none;">
+          <label>የቴሌብር ግብይት ቁጥር / Telebirr Transaction ID</label>
+          <input type="text" id="regTxnRef" placeholder="ለምሳሌ፡ CBE1A2B3C4">
+        </div>
+      </div>
       <label>የመዘገበው ሻጭ/ቅርንጫፍ (አማራጭ) / Registered by — staff/branch (optional)</label>
       <input type="text" id="regStaff" placeholder="ለምሳሌ፡ ቅርንጫፍ 1 - ሰላም">
       <div id="entriesPreview" style="font-family:'Space Mono',monospace;color:var(--gold-soft);font-size:13px;margin-bottom:16px;"></div>
@@ -231,7 +246,7 @@
       </p>
       <div style="overflow-x:auto;">
         <table id="registryTable">
-          <thead><tr><th>ስም / Name</th><th>ስልክ / Phone</th><th>ብር / ETB</th><th>ዕድል / Entries</th><th>ትኬት / Tickets</th><th>ሻጭ / Staff</th><th></th></tr></thead>
+          <thead><tr><th>ስም / Name</th><th>ስልክ / Phone</th><th>ብር / ETB</th><th>ክፍያ / Payment</th><th>ዕድል / Entries</th><th>ትኬት / Tickets</th><th>ሻጭ / Staff</th><th></th></tr></thead>
           <tbody id="registryBody"></tbody>
         </table>
       </div>
@@ -406,17 +421,27 @@ function updateEntriesPreview(){
 }
 document.getElementById('regAmount').addEventListener('input', updateEntriesPreview);
 
+function toggleTelebirrField(){
+  const isTelebirr = document.getElementById('regPayMethod').value === 'telebirr';
+  document.getElementById('telebirrRefWrap').style.display = isTelebirr ? 'block' : 'none';
+}
+document.getElementById('regPayMethod').addEventListener('change', toggleTelebirrField);
+toggleTelebirrField();
+
 document.getElementById('regSubmit').addEventListener('click', async ()=>{
   const msgEl = document.getElementById('regMsg');
   const name = document.getElementById('regName').value.trim();
   const phone = document.getElementById('regPhone').value.trim();
   const amount = parseFloat(document.getElementById('regAmount').value) || 0;
   const staff = document.getElementById('regStaff').value.trim();
+  const payMethod = document.getElementById('regPayMethod').value;
+  const txnRef = document.getElementById('regTxnRef').value.trim();
   const rate = settings.rate || 500;
   const entries = Math.floor(amount / rate);
 
   if(!name || !phone){ showMsg(msgEl, '⚠️ ስም እና ስልክ ያስፈልጋል / Name and phone required', false); return; }
   if(entries < 1){ showMsg(msgEl, `⚠️ ቢያንስ ${rate} ብር ያስፈልጋል ለ1 ዕድል / Minimum ${rate} ETB needed for 1 entry`, false); return; }
+  if(payMethod === 'telebirr' && !txnRef){ showMsg(msgEl, '⚠️ የቴሌብር ግብይት ቁጥር ያስፈልጋል / Telebirr transaction ID required', false); return; }
 
   const btn = document.getElementById('regSubmit');
   btn.disabled = true; btn.textContent = 'በመመዝገብ ላይ... / Saving...';
@@ -425,6 +450,7 @@ document.getElementById('regSubmit').addEventListener('click', async ()=>{
   try{
     await participantsRef.add({
       name, phone, amount, entries, staff,
+      payMethod, txnRef: payMethod === 'telebirr' ? txnRef : '',
       timestamp: new Date().toISOString()
     });
   }catch(e){
@@ -439,6 +465,9 @@ document.getElementById('regSubmit').addEventListener('click', async ()=>{
     document.getElementById('regPhone').value = '';
     document.getElementById('regAmount').value = '';
     document.getElementById('regStaff').value = '';
+    document.getElementById('regTxnRef').value = '';
+    document.getElementById('regPayMethod').value = 'ጥሬ ገንዘብ / Cash';
+    toggleTelebirrField();
     document.getElementById('entriesPreview').textContent = '';
     // participants + stats update automatically via the onSnapshot listener
   } else {
@@ -464,10 +493,14 @@ function refreshRegistryTable(){
   empty.style.display = 'none';
   filtered.slice().reverse().forEach(p=>{
     const tr = document.createElement('tr');
+    const payLabel = p.payMethod === 'telebirr'
+      ? `📱 telebirr${p.txnRef ? ' <span style=\"color:var(--muted);font-size:11px;\">('+escapeHtml(p.txnRef)+')</span>' : ''}`
+      : escapeHtml(p.payMethod || 'ጥሬ ገንዘብ / Cash');
     tr.innerHTML = `
       <td>${escapeHtml(p.name)}</td>
       <td>${escapeHtml(p.phone)}</td>
       <td>${p.amount.toLocaleString()}</td>
+      <td style="font-size:12px;">${payLabel}</td>
       <td>${p.entries}</td>
       <td style="font-family:'Space Mono',monospace;font-size:12px;">#${p.start}${p.end>p.start?'–#'+p.end:''}</td>
       <td style="color:var(--muted);font-size:12px;">${escapeHtml(p.staff||'—')}</td>
@@ -504,6 +537,8 @@ document.getElementById('exportExcel').addEventListener('click', ()=>{
     'ስም / Name': p.name,
     'ስልክ / Phone': p.phone,
     'የተከፈለ (ብር) / Amount (ETB)': p.amount,
+    'የክፍያ መንገድ / Payment Method': p.payMethod || 'ጥሬ ገንዘብ / Cash',
+    'የቴሌብር ቁጥር / Telebirr Txn ID': p.txnRef || '',
     'ቀን / Date': p.timestamp ? p.timestamp.slice(0,10) : '',
     'ዕድል / Entries': p.entries,
     'ትኬት ጀምሮ / Start Ticket': p.start,
@@ -511,7 +546,7 @@ document.getElementById('exportExcel').addEventListener('click', ()=>{
     'ሻጭ/ቅርንጫፍ / Staff': p.staff || ''
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:22},{wch:16},{wch:16},{wch:12},{wch:10},{wch:12},{wch:12},{wch:20}];
+  ws['!cols'] = [{wch:22},{wch:16},{wch:16},{wch:18},{wch:18},{wch:12},{wch:10},{wch:12},{wch:12},{wch:20}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'ደንበኞች_Entries');
   const dateStr = new Date().toISOString().slice(0,10);
@@ -830,9 +865,21 @@ window.addEventListener('appinstalled', () => {
 
 if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err) => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      // Check for a newer service worker on every page load
+      reg.update();
+    }).catch((err) => {
       console.warn('Service worker registration failed:', err);
     });
+  });
+
+  // When a new service worker takes over, reload once automatically
+  // so the phone always shows the latest deployed version.
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
   });
 }
 </script>

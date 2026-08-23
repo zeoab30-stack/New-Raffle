@@ -1,4 +1,4 @@
-const CACHE_NAME = 'raffle-app-v1';
+const CACHE_NAME = 'raffle-app-v2';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -22,21 +22,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Cache-first for the app shell; network-first fallback for everything else
-// (so live storage/API calls and CDN fonts/libraries always try network first).
+// Network-first for same-origin requests (always get the latest app code first;
+// cache is only a fallback for offline use). This avoids ever serving a stale
+// cached version after you deploy an update.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  const isShell = APP_SHELL.some((path) => req.url.endsWith(path.replace('./', '')));
 
-  if (isShell) {
+  if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(req).then((cached) => cached || fetch(req))
-    );
-  } else if (url.origin === self.location.origin) {
-    event.respondWith(
-      fetch(req).catch(() => caches.match(req))
+      fetch(req)
+        .then((res) => {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          return res;
+        })
+        .catch(() => caches.match(req))
     );
   }
-  // cross-origin (fonts, CDN xlsx lib, storage API) — let the browser handle it normally
+  // cross-origin (fonts, CDN xlsx lib, Firebase SDK/Firestore) — let the browser handle it normally
 });
