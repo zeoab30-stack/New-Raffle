@@ -214,6 +214,7 @@
     <button data-tab="register" class="active">📝 ምዝገባ / Register</button>
     <button data-tab="registry">📋 ዝርዝር / Registry</button>
     <button data-tab="draw">🎉 ዕጣ / Draw</button>
+    <button data-tab="equb">🔄 እቁብ / Equb</button>
     <button data-tab="settings">⚙️ ማስተካከያ / Settings</button>
   </nav>
   <div class="sync-note" id="syncNote">በመጫን ላይ... / loading...</div>
@@ -309,6 +310,81 @@
     </div>
   </section>
 
+  <!-- ============ EQUB ============ -->
+  <section class="panel" id="panel-equb">
+    <div class="card">
+      <h2>⚙️ የእቁብ ማስተካከያ / Equb Settings</h2>
+      <div class="field-row">
+        <div>
+          <label>የሳምንት መዋጮ (ብር) / Weekly Contribution (ETB)</label>
+          <input type="number" id="equbContribution" min="0" value="500">
+        </div>
+        <div>
+          <label>ድግግሞሽ / Frequency</label>
+          <select id="equbFrequency" style="width:100%;background:#0A1B14;border:1px solid var(--line);border-radius:9px;color:var(--cream);font-family:'Noto Sans Ethiopic',sans-serif;font-size:14.5px;padding:12px 14px;margin-bottom:16px;">
+            <option value="ሳምንታዊ / Weekly">ሳምንታዊ / Weekly</option>
+            <option value="ወርሃዊ / Monthly">ወርሃዊ / Monthly</option>
+            <option value="በየ2 ሳምንቱ / Bi-weekly">በየ2 ሳምንቱ / Bi-weekly</option>
+          </select>
+        </div>
+      </div>
+      <div id="equbSetMsg" class="msg"></div>
+      <button class="btn btn-primary" id="equbSaveSettings">💾 አስቀምጥ / Save</button>
+    </div>
+
+    <div class="card">
+      <h2>👥 አባላት / Members</h2>
+      <p class="hint">ወደ እቁቡ የሚገቡ ሰዎች ዝርዝር። እያንዳንዱ አባል በዙሩ አንድ ጊዜ ብቻ ያሸንፋል።<br>The roster of equb members. Each member wins exactly once per cycle.</p>
+      <div id="equbMemberMsg" class="msg"></div>
+      <div class="field-row">
+        <input type="text" id="equbMemberName" placeholder="የአባል ስም / Member name">
+        <input type="tel" id="equbMemberPhone" placeholder="ስልክ / Phone">
+      </div>
+      <button class="btn btn-primary" id="equbAddMember" style="margin-bottom:16px;">➕ አባል ጨምር / Add Member</button>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>ስም / Name</th><th>ስልክ / Phone</th><th>ሁኔታ / Status</th><th></th></tr></thead>
+          <tbody id="equbMembersBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-note" id="equbMembersEmpty" style="display:none;">ገና ምንም አባል አልተጨመረም / No members added yet</div>
+    </div>
+
+    <div class="card">
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="equbCycleNum">1</div><div class="lbl">የአሁኑ ዙር / Current Cycle</div></div>
+        <div class="stat"><div class="num" id="equbEligibleCount">0</div><div class="lbl">ገና ያላሸነፉ / Not Yet Won</div></div>
+        <div class="stat"><div class="num" id="equbPotAmount">0</div><div class="lbl">የዚህ ሳምንት ገንዘብ (ብር) / This Round's Pot</div></div>
+      </div>
+    </div>
+
+    <div class="tier" id="equbDrawTier">
+      <div class="win-flash" id="equb-flash"></div>
+      <div class="tier-rank">🔄 የዚህ ሳምንት አሸናፊ / This Round's Winner</div>
+      <div class="reel-area" id="equb-reel">
+        <span class="reel-placeholder">ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ / Press draw to begin</span>
+      </div>
+      <div class="tier-actions">
+        <button class="btn btn-primary" id="equbDrawBtn">🎲 ዕጣ አውጣ / Draw This Round</button>
+      </div>
+      <div id="equbCycleDoneMsg" style="display:none;text-align:center;margin-top:14px;font-family:'Noto Sans Ethiopic',sans-serif;color:var(--gold-soft);font-size:14px;">
+        🎉 ሁሉም አባላት አሸንፈዋል! አዲስ ዙር ይጀምሩ፦
+        <div style="margin-top:10px;"><button class="btn btn-ghost" id="equbNewCycleBtn">🔁 አዲስ ዙር ጀምር / Start New Cycle</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📜 ታሪክ / History</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>ዙር / Cycle</th><th>ቀን / Date</th><th>አሸናፊ / Winner</th><th>ገንዘብ / Pot (ETB)</th></tr></thead>
+          <tbody id="equbHistoryBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-note" id="equbHistoryEmpty" style="display:none;">ገና ምንም ዕጣ አልወጣም / No rounds drawn yet</div>
+    </div>
+  </section>
+
   <!-- ============ SETTINGS ============ -->
   <section class="panel" id="panel-settings">
     <div class="card">
@@ -358,6 +434,9 @@ const db = firebase.firestore();
 const settingsRef = db.collection('raffle').doc('settings');
 const resultsRef = db.collection('raffle').doc('draw_results');
 const participantsRef = db.collection('raffle_participants');
+const equbSettingsRef = db.collection('equb').doc('settings');
+const equbMembersRef = db.collection('equb_members');
+const equbRoundsRef = db.collection('equb_rounds');
 
 const DEFAULT_SETTINGS = {
   rate: 500,
@@ -424,7 +503,7 @@ participantsRef.orderBy('timestamp', 'asc').onSnapshot((snap)=>{
 });
 
 /* ================= admin lock ================= */
-const ADMIN_TABS = ['draw', 'settings'];
+const ADMIN_TABS = ['draw', 'equb', 'settings'];
 function isAdminUnlocked(){
   return sessionStorage.getItem('raffle_admin_ok') === '1';
 }
@@ -452,6 +531,7 @@ document.querySelectorAll('nav button').forEach(btn=>{
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab === 'registry') refreshRegistryTable();
     if(btn.dataset.tab === 'draw') setupDrawTab();
+    if(btn.dataset.tab === 'equb') loadEqubTab();
     if(btn.dataset.tab === 'settings') applySettingsToForm();
   });
 });
@@ -949,6 +1029,225 @@ function burstConfetti(){
     d.style.opacity = 0.7 + Math.random()*0.3;
     document.body.appendChild(d);
     setTimeout(()=>d.remove(), 3600);
+  }
+}
+
+/* ================= equb (rotating savings) ================= */
+const DEFAULT_EQUB_SETTINGS = { contribution: 500, frequency: 'ሳምንታዊ / Weekly', cycleNumber: 1 };
+let equbSettings = { ...DEFAULT_EQUB_SETTINGS };
+let equbMembers = [];
+let equbRounds = [];
+
+async function loadEqubTab(){
+  try{
+    const s = await equbSettingsRef.get();
+    equbSettings = s.exists ? s.data() : DEFAULT_EQUB_SETTINGS;
+    if(!s.exists) await equbSettingsRef.set(DEFAULT_EQUB_SETTINGS);
+  }catch(e){ console.error('equb settings load failed', e); equbSettings = DEFAULT_EQUB_SETTINGS; }
+
+  document.getElementById('equbContribution').value = equbSettings.contribution;
+  document.getElementById('equbFrequency').value = equbSettings.frequency;
+
+  try{
+    const m = await equbMembersRef.orderBy('timestamp','asc').get();
+    equbMembers = m.docs.map(d => ({ id: d.id, ...d.data() }));
+  }catch(e){ console.error('equb members load failed', e); equbMembers = []; }
+
+  try{
+    const r = await equbRoundsRef.orderBy('timestamp','asc').get();
+    equbRounds = r.docs.map(d => ({ id: d.id, ...d.data() }));
+  }catch(e){ console.error('equb rounds load failed', e); equbRounds = []; }
+
+  renderEqubMembers();
+  renderEqubHistory();
+  renderEqubDrawState();
+}
+
+function equbWinnersThisCycle(){
+  return new Set(equbRounds.filter(r => r.cycleNumber === equbSettings.cycleNumber).map(r => r.memberId));
+}
+
+function renderEqubMembers(){
+  const body = document.getElementById('equbMembersBody');
+  const empty = document.getElementById('equbMembersEmpty');
+  const won = equbWinnersThisCycle();
+  body.innerHTML = '';
+  if(equbMembers.length === 0){ empty.style.display = 'block'; }
+  else {
+    empty.style.display = 'none';
+    equbMembers.forEach(m=>{
+      const hasWon = won.has(m.id);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(m.name)}</td>
+        <td>${escapeHtml(m.phone)}</td>
+        <td>${hasWon ? '✅ አሸንፏል / Won' : '⏳ ገና / Pending'}</td>
+        <td><button class="btn-danger" data-id="${m.id}">አጥፋ / Delete</button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.btn-danger').forEach(b=>{
+      b.addEventListener('click', ()=>deleteEqubMember(b.dataset.id));
+    });
+  }
+  const eligible = equbMembers.filter(m => !won.has(m.id));
+  document.getElementById('equbCycleNum').textContent = equbSettings.cycleNumber;
+  document.getElementById('equbEligibleCount').textContent = eligible.length;
+  document.getElementById('equbPotAmount').textContent = (equbSettings.contribution * equbMembers.length).toLocaleString();
+}
+
+function renderEqubHistory(){
+  const body = document.getElementById('equbHistoryBody');
+  const empty = document.getElementById('equbHistoryEmpty');
+  body.innerHTML = '';
+  if(equbRounds.length === 0){ empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  equbRounds.slice().reverse().forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.cycleNumber}</td>
+      <td>${r.timestamp ? r.timestamp.slice(0,10) : ''}</td>
+      <td>${escapeHtml(r.memberName)}</td>
+      <td>${(r.potAmount||0).toLocaleString()}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function renderEqubDrawState(){
+  const won = equbWinnersThisCycle();
+  const eligible = equbMembers.filter(m => !won.has(m.id));
+  const drawBtn = document.getElementById('equbDrawBtn');
+  const doneMsg = document.getElementById('equbCycleDoneMsg');
+  const reel = document.getElementById('equb-reel');
+
+  if(equbMembers.length === 0){
+    reel.innerHTML = '<span class="reel-placeholder">መጀመሪያ አባላት ይጨምሩ / Add members first</span>';
+    drawBtn.disabled = true;
+    doneMsg.style.display = 'none';
+  } else if(eligible.length === 0){
+    reel.innerHTML = '<span class="reel-placeholder">🎉 ሁሉም አባላት በዚህ ዙር አሸንፈዋል / Everyone has won this cycle</span>';
+    drawBtn.disabled = true;
+    doneMsg.style.display = 'block';
+  } else {
+    drawBtn.disabled = false;
+    doneMsg.style.display = 'none';
+    reel.innerHTML = '<span class="reel-placeholder">ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ / Press draw to begin</span>';
+  }
+}
+
+document.getElementById('equbAddMember').addEventListener('click', async ()=>{
+  const msgEl = document.getElementById('equbMemberMsg');
+  const name = document.getElementById('equbMemberName').value.trim();
+  const phone = document.getElementById('equbMemberPhone').value.trim();
+  if(!name || !phone){ showMsg(msgEl, '⚠️ ስም እና ስልክ ያስፈልጋል / Name and phone required', false); return; }
+  try{
+    await equbMembersRef.add({ name, phone, timestamp: new Date().toISOString() });
+    document.getElementById('equbMemberName').value = '';
+    document.getElementById('equbMemberPhone').value = '';
+    showMsg(msgEl, `✅ ${name} ተጨምሯል / Added`, true);
+    await loadEqubTab();
+  }catch(e){
+    console.error('add equb member failed', e);
+    showMsg(msgEl, '❌ ስህተት ተፈጥሯል / Something went wrong', false);
+  }
+});
+
+async function deleteEqubMember(id){
+  if(!requestAdminAccess()) return;
+  if(!confirm('እርግጠኛ ነዎት? ይህ አባል ከእቁቡ ይወገዳል። / Remove this member from the equb?')) return;
+  try{
+    await equbMembersRef.doc(id).delete();
+    await loadEqubTab();
+  }catch(e){
+    console.error('delete equb member failed', e);
+    alert('❌ ማጥፋት አልተቻለም / Could not delete');
+  }
+}
+
+document.getElementById('equbSaveSettings').addEventListener('click', async ()=>{
+  const msgEl = document.getElementById('equbSetMsg');
+  const newSettings = {
+    ...equbSettings,
+    contribution: parseFloat(document.getElementById('equbContribution').value) || 500,
+    frequency: document.getElementById('equbFrequency').value
+  };
+  try{
+    await equbSettingsRef.set(newSettings);
+    equbSettings = newSettings;
+    showMsg(msgEl, '✅ ተቀምጧል / Saved', true);
+    renderEqubMembers();
+  }catch(e){
+    console.error('save equb settings failed', e);
+    showMsg(msgEl, '❌ አልተቀመጠም / Failed to save', false);
+  }
+});
+
+document.getElementById('equbNewCycleBtn').addEventListener('click', async ()=>{
+  if(!confirm('አዲስ ዙር ሲጀመር ሁሉም አባላት ዳግም ብቁ ይሆናሉ። እርግጠኛ ነዎት? / Start a new cycle — all members become eligible again. Continue?')) return;
+  try{
+    const newSettings = { ...equbSettings, cycleNumber: (equbSettings.cycleNumber || 1) + 1 };
+    await equbSettingsRef.set(newSettings);
+    equbSettings = newSettings;
+    renderEqubMembers();
+    renderEqubDrawState();
+  }catch(e){ console.error('new cycle failed', e); }
+});
+
+document.getElementById('equbDrawBtn').addEventListener('click', ()=>{
+  const won = equbWinnersThisCycle();
+  const eligible = equbMembers.filter(m => !won.has(m.id));
+  if(eligible.length === 0) return;
+
+  const drawBtn = document.getElementById('equbDrawBtn');
+  drawBtn.disabled = true;
+  const reel = document.getElementById('equb-reel');
+
+  const winner = eligible[Math.floor(Math.random()*eligible.length)];
+
+  // simple name-cycling reveal animation
+  reel.innerHTML = `<span class="reel-ticket spinning" id="equb-spin">...</span>`;
+  const spinEl = document.getElementById('equb-spin');
+  let tick = 0; const totalTicks = 20;
+  function step(){
+    const r = eligible[Math.floor(Math.random()*eligible.length)];
+    spinEl.textContent = r.name;
+    tick++;
+    if(tick < totalTicks){
+      const progress = tick / totalTicks;
+      setTimeout(step, 60 + Math.pow(progress, 2.2) * 260);
+    } else {
+      finalizeEqubDraw(winner, reel);
+    }
+  }
+  step();
+});
+
+async function finalizeEqubDraw(winner, reel){
+  const potAmount = equbSettings.contribution * equbMembers.length;
+  reel.innerHTML = `
+    <div class="reel-winner">
+      <p class="name">🎉 ${escapeHtml(winner.name)}</p>
+      <p class="phone">${escapeHtml(maskedPhone(winner.phone))} · ${potAmount.toLocaleString()} ብር / ETB</p>
+    </div>
+  `;
+  const flash = document.getElementById('equb-flash');
+  flash.classList.add('show'); setTimeout(()=>flash.classList.remove('show'), 900);
+  burstConfetti();
+
+  try{
+    await equbRoundsRef.add({
+      cycleNumber: equbSettings.cycleNumber,
+      memberId: winner.id,
+      memberName: winner.name,
+      memberPhone: winner.phone,
+      potAmount,
+      timestamp: new Date().toISOString()
+    });
+    await loadEqubTab();
+  }catch(e){
+    console.error('save equb round failed', e);
+    document.getElementById('equbDrawBtn').disabled = false;
   }
 }
 
