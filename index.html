@@ -93,6 +93,18 @@
   .btn-ghost:hover{border-color:var(--gold);color:var(--gold-soft);}
   .btn-danger{background:transparent;border:1px solid #E8604A55;color:#E8604A;font-size:12px;padding:7px 14px;}
   .btn-danger:hover{background:#E8604A18;}
+  .paid-toggle{
+    font-family:'Noto Sans Ethiopic',sans-serif;font-size:12px;font-weight:700;
+    border:1px solid #E8604A55;color:#E8604A;background:transparent;
+    border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap;
+  }
+  .paid-toggle.is-paid{border-color:#6FCF9755;color:var(--ok);}
+  .mini-btn{
+    font-family:'Space Mono',monospace;font-size:10.5px;
+    border:1px solid var(--line);color:var(--muted);background:transparent;
+    border-radius:6px;padding:4px 8px;cursor:pointer;
+  }
+  .mini-btn:hover{border-color:var(--gold);color:var(--gold-soft);}
 
   .msg{font-family:'Space Mono',monospace;font-size:13px;padding:10px 14px;border-radius:10px;margin-bottom:14px;display:none;}
   .msg.show{display:block;}
@@ -316,7 +328,7 @@
       <h2>⚙️ የእቁብ ማስተካከያ / Equb Settings</h2>
       <div class="field-row">
         <div>
-          <label>የሳምንት መዋጮ (ብር) / Weekly Contribution (ETB)</label>
+          <label>የመዋጮ መጠን (ብር) / Contribution (ETB)</label>
           <input type="number" id="equbContribution" min="0" value="500">
         </div>
         <div>
@@ -328,22 +340,55 @@
           </select>
         </div>
       </div>
+      <div class="field-row">
+        <div>
+          <label>የመጀመሪያ ቀን / Start Date</label>
+          <input type="date" id="equbStartDate">
+        </div>
+        <div>
+          <label>የመሰብሰቢያ ቀን (ሳምንታዊ ከሆነ) / Collection Day (if weekly)</label>
+          <select id="equbCollectionDay" style="width:100%;background:#0A1B14;border:1px solid var(--line);border-radius:9px;color:var(--cream);font-family:'Noto Sans Ethiopic',sans-serif;font-size:14.5px;padding:12px 14px;margin-bottom:16px;">
+            <option value="0">እሁድ / Sunday</option>
+            <option value="1">ሰኞ / Monday</option>
+            <option value="2">ማክሰኞ / Tuesday</option>
+            <option value="3">ረቡዕ / Wednesday</option>
+            <option value="4">ሐሙስ / Thursday</option>
+            <option value="5">አርብ / Friday</option>
+            <option value="6">ቅዳሜ / Saturday</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label>ቅጣት መጠን (ብር) / Late Penalty (ETB)</label>
+          <input type="number" id="equbPenalty" min="0" value="0">
+        </div>
+        <div>
+          <label>የአስተዳዳሪ ኮሚሽን በዙር (ብር) / Admin Commission per Round (ETB)</label>
+          <input type="number" id="equbCommission" min="0" value="0">
+        </div>
+      </div>
+      <p class="hint" style="margin-top:-8px;">ኮሚሽን ከጠቅላላ ገንዘቡ ተቀንሶ ቀሪው ለአሸናፊው ይሰጣል። ቅጣት ላልከፈለ አባል ተጠራቅሞ ይመዘገባል (ከታች "አባላት" ውስጥ ይታያል)።<br>Commission is deducted from the pot before payout to the winner. Penalties accumulate per member below in "Members".</p>
       <div id="equbSetMsg" class="msg"></div>
       <button class="btn btn-primary" id="equbSaveSettings">💾 አስቀምጥ / Save</button>
+      <div id="equbNextCollection" style="margin-top:14px;font-family:'Space Mono',monospace;font-size:13px;color:var(--gold-soft);"></div>
     </div>
 
     <div class="card">
       <h2>👥 አባላት / Members</h2>
-      <p class="hint">ወደ እቁቡ የሚገቡ ሰዎች ዝርዝር። እያንዳንዱ አባል በዙሩ አንድ ጊዜ ብቻ ያሸንፋል።<br>The roster of equb members. Each member wins exactly once per cycle.</p>
+      <p class="hint">ወደ እቁቡ የሚገቡ ሰዎች ዝርዝር። እያንዳንዱ አባል በዙሩ አንድ ጊዜ ብቻ ያሸንፋል። "ከፍሏል" የሚለውን ተጭነው የዚህን ዙር ክፍያ ይመዝግቡ፤ ካልከፈለ ቅጣት ይጨምሩ።<br>Each member wins exactly once per cycle. Toggle "Paid" to track this round's collection; add a penalty for anyone who misses the collection day.</p>
       <div id="equbMemberMsg" class="msg"></div>
       <div class="field-row">
         <input type="text" id="equbMemberName" placeholder="የአባል ስም / Member name">
         <input type="tel" id="equbMemberPhone" placeholder="ስልክ / Phone">
       </div>
-      <button class="btn btn-primary" id="equbAddMember" style="margin-bottom:16px;">➕ አባል ጨምር / Add Member</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="btn btn-primary" id="equbAddMember">➕ አባል ጨምር / Add Member</button>
+        <button class="btn btn-ghost" id="equbResetPaid">🔄 ለቀጣይ ስብስብ አጽዳ / Reset Payment Status</button>
+      </div>
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>ስም / Name</th><th>ስልክ / Phone</th><th>ሁኔታ / Status</th><th></th></tr></thead>
+          <thead><tr><th>ስም / Name</th><th>ስልክ / Phone</th><th>ዙር / Cycle</th><th>ክፍያ (ይህ ዙር) / Paid</th><th>ቅጣት / Penalty</th><th></th></tr></thead>
           <tbody id="equbMembersBody"></tbody>
         </table>
       </div>
@@ -354,13 +399,18 @@
       <div class="stat-row">
         <div class="stat"><div class="num" id="equbCycleNum">1</div><div class="lbl">የአሁኑ ዙር / Current Cycle</div></div>
         <div class="stat"><div class="num" id="equbEligibleCount">0</div><div class="lbl">ገና ያላሸነፉ / Not Yet Won</div></div>
-        <div class="stat"><div class="num" id="equbPotAmount">0</div><div class="lbl">የዚህ ሳምንት ገንዘብ (ብር) / This Round's Pot</div></div>
+        <div class="stat"><div class="num" id="equbPaidCount">0</div><div class="lbl">የከፈሉ (ይህ ዙር) / Paid This Round</div></div>
+      </div>
+      <div class="stat-row" style="margin-top:14px;">
+        <div class="stat"><div class="num" id="equbGrossPot">0</div><div class="lbl">ጠቅላላ ገንዘብ (ብር) / Gross Pot (ETB)</div></div>
+        <div class="stat"><div class="num" id="equbCommissionAmt">0</div><div class="lbl">ኮሚሽን (ብር) / Commission (ETB)</div></div>
+        <div class="stat"><div class="num" id="equbNetPot">0</div><div class="lbl">ለአሸናፊ የሚከፈል (ብር) / Net Payout (ETB)</div></div>
       </div>
     </div>
 
     <div class="tier" id="equbDrawTier">
       <div class="win-flash" id="equb-flash"></div>
-      <div class="tier-rank">🔄 የዚህ ሳምንት አሸናፊ / This Round's Winner</div>
+      <div class="tier-rank">🔄 የዚህ ዙር አሸናፊ / This Round's Winner</div>
       <div class="reel-area" id="equb-reel">
         <span class="reel-placeholder">ለመጀመር ከታች ያለውን ቁልፍ ይጫኑ / Press draw to begin</span>
       </div>
@@ -1033,24 +1083,46 @@ function burstConfetti(){
 }
 
 /* ================= equb (rotating savings) ================= */
-const DEFAULT_EQUB_SETTINGS = { contribution: 500, frequency: 'ሳምንታዊ / Weekly', cycleNumber: 1 };
+const DEFAULT_EQUB_SETTINGS = {
+  contribution: 500, frequency: 'ሳምንታዊ / Weekly', cycleNumber: 1,
+  startDate: '', collectionDay: '1', penaltyAmount: 0, commissionAmount: 0
+};
 let equbSettings = { ...DEFAULT_EQUB_SETTINGS };
 let equbMembers = [];
 let equbRounds = [];
 
+const WEEKDAY_NAMES = ['እሁድ / Sunday','ሰኞ / Monday','ማክሰኞ / Tuesday','ረቡዕ / Wednesday','ሐሙስ / Thursday','አርብ / Friday','ቅዳሜ / Saturday'];
+
+function nextCollectionDateText(){
+  if(equbSettings.frequency && equbSettings.frequency.includes('Weekly')){
+    const targetDay = parseInt(equbSettings.collectionDay, 10) || 0;
+    const today = new Date();
+    const diff = (targetDay - today.getDay() + 7) % 7;
+    const next = new Date(today);
+    next.setDate(today.getDate() + (diff === 0 ? 7 : diff));
+    return `📅 ቀጣይ መሰብሰቢያ / Next collection: ${WEEKDAY_NAMES[targetDay]} — ${next.toLocaleDateString('en-GB')}`;
+  }
+  return equbSettings.startDate ? `📅 የመጀመሪያ ቀን / Start date: ${equbSettings.startDate}` : '';
+}
+
 async function loadEqubTab(){
   try{
     const s = await equbSettingsRef.get();
-    equbSettings = s.exists ? s.data() : DEFAULT_EQUB_SETTINGS;
+    equbSettings = s.exists ? { ...DEFAULT_EQUB_SETTINGS, ...s.data() } : DEFAULT_EQUB_SETTINGS;
     if(!s.exists) await equbSettingsRef.set(DEFAULT_EQUB_SETTINGS);
   }catch(e){ console.error('equb settings load failed', e); equbSettings = DEFAULT_EQUB_SETTINGS; }
 
   document.getElementById('equbContribution').value = equbSettings.contribution;
   document.getElementById('equbFrequency').value = equbSettings.frequency;
+  document.getElementById('equbStartDate').value = equbSettings.startDate || '';
+  document.getElementById('equbCollectionDay').value = equbSettings.collectionDay || '1';
+  document.getElementById('equbPenalty').value = equbSettings.penaltyAmount || 0;
+  document.getElementById('equbCommission').value = equbSettings.commissionAmount || 0;
+  document.getElementById('equbNextCollection').textContent = nextCollectionDateText();
 
   try{
     const m = await equbMembersRef.orderBy('timestamp','asc').get();
-    equbMembers = m.docs.map(d => ({ id: d.id, ...d.data() }));
+    equbMembers = m.docs.map(d => ({ id: d.id, paidThisRound: false, penaltyOwed: 0, ...d.data() }));
   }catch(e){ console.error('equb members load failed', e); equbMembers = []; }
 
   try{
@@ -1077,11 +1149,20 @@ function renderEqubMembers(){
     empty.style.display = 'none';
     equbMembers.forEach(m=>{
       const hasWon = won.has(m.id);
+      const penalty = m.penaltyOwed || 0;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${escapeHtml(m.name)}</td>
         <td>${escapeHtml(m.phone)}</td>
         <td>${hasWon ? '✅ አሸንፏል / Won' : '⏳ ገና / Pending'}</td>
+        <td><button class="paid-toggle ${m.paidThisRound?'is-paid':''}" data-id="${m.id}">${m.paidThisRound ? '✅ ከፍሏል' : '❌ አልከፈለም'}</button></td>
+        <td>
+          ${penalty > 0 ? `<span style="color:var(--err);font-family:'Space Mono',monospace;">${penalty.toLocaleString()} ብር</span>` : '<span style="color:var(--muted);">—</span>'}
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="mini-btn" data-action="addpen" data-id="${m.id}" title="ቅጣት ጨምር / Add penalty">+ ቅጣት</button>
+            ${penalty > 0 ? `<button class="mini-btn" data-action="clearpen" data-id="${m.id}" title="ቅጣት አጽዳ / Clear penalty">አጽዳ</button>` : ''}
+          </div>
+        </td>
         <td><button class="btn-danger" data-id="${m.id}">አጥፋ / Delete</button></td>
       `;
       body.appendChild(tr);
@@ -1089,11 +1170,28 @@ function renderEqubMembers(){
     body.querySelectorAll('.btn-danger').forEach(b=>{
       b.addEventListener('click', ()=>deleteEqubMember(b.dataset.id));
     });
+    body.querySelectorAll('.paid-toggle').forEach(b=>{
+      b.addEventListener('click', ()=>toggleEqubPaid(b.dataset.id));
+    });
+    body.querySelectorAll('[data-action="addpen"]').forEach(b=>{
+      b.addEventListener('click', ()=>addEqubPenalty(b.dataset.id));
+    });
+    body.querySelectorAll('[data-action="clearpen"]').forEach(b=>{
+      b.addEventListener('click', ()=>clearEqubPenalty(b.dataset.id));
+    });
   }
   const eligible = equbMembers.filter(m => !won.has(m.id));
+  const paidMembers = equbMembers.filter(m => m.paidThisRound);
+  const commission = equbSettings.commissionAmount || 0;
+  const grossPot = equbSettings.contribution * equbMembers.length;
+  const netPot = Math.max(0, grossPot - commission);
+
   document.getElementById('equbCycleNum').textContent = equbSettings.cycleNumber;
   document.getElementById('equbEligibleCount').textContent = eligible.length;
-  document.getElementById('equbPotAmount').textContent = (equbSettings.contribution * equbMembers.length).toLocaleString();
+  document.getElementById('equbPaidCount').textContent = `${paidMembers.length}/${equbMembers.length}`;
+  document.getElementById('equbGrossPot').textContent = grossPot.toLocaleString();
+  document.getElementById('equbCommissionAmt').textContent = commission.toLocaleString();
+  document.getElementById('equbNetPot').textContent = netPot.toLocaleString();
 }
 
 function renderEqubHistory(){
@@ -1108,7 +1206,7 @@ function renderEqubHistory(){
       <td>${r.cycleNumber}</td>
       <td>${r.timestamp ? r.timestamp.slice(0,10) : ''}</td>
       <td>${escapeHtml(r.memberName)}</td>
-      <td>${(r.potAmount||0).toLocaleString()}</td>
+      <td>${(r.netPayout ?? r.potAmount ?? 0).toLocaleString()}${r.commission ? ` <span style="color:var(--muted);font-size:11px;">(ኮሚሽን ${r.commission.toLocaleString()})</span>` : ''}</td>
     `;
     body.appendChild(tr);
   });
@@ -1142,7 +1240,7 @@ document.getElementById('equbAddMember').addEventListener('click', async ()=>{
   const phone = document.getElementById('equbMemberPhone').value.trim();
   if(!name || !phone){ showMsg(msgEl, '⚠️ ስም እና ስልክ ያስፈልጋል / Name and phone required', false); return; }
   try{
-    await equbMembersRef.add({ name, phone, timestamp: new Date().toISOString() });
+    await equbMembersRef.add({ name, phone, paidThisRound: false, penaltyOwed: 0, timestamp: new Date().toISOString() });
     document.getElementById('equbMemberName').value = '';
     document.getElementById('equbMemberPhone').value = '';
     showMsg(msgEl, `✅ ${name} ተጨምሯል / Added`, true);
@@ -1165,17 +1263,68 @@ async function deleteEqubMember(id){
   }
 }
 
+async function toggleEqubPaid(id){
+  const m = equbMembers.find(x=>x.id===id);
+  if(!m) return;
+  try{
+    await equbMembersRef.doc(id).update({ paidThisRound: !m.paidThisRound });
+    m.paidThisRound = !m.paidThisRound;
+    renderEqubMembers();
+  }catch(e){ console.error('toggle paid failed', e); }
+}
+
+async function addEqubPenalty(id){
+  if(!requestAdminAccess()) return;
+  const m = equbMembers.find(x=>x.id===id);
+  if(!m) return;
+  const amount = equbSettings.penaltyAmount || 0;
+  if(amount <= 0){ alert('⚠️ መጀመሪያ በማስተካከያ ውስጥ የቅጣት መጠን ያዘጋጁ / Set a penalty amount in Settings first'); return; }
+  try{
+    const newPenalty = (m.penaltyOwed || 0) + amount;
+    await equbMembersRef.doc(id).update({ penaltyOwed: newPenalty });
+    m.penaltyOwed = newPenalty;
+    renderEqubMembers();
+  }catch(e){ console.error('add penalty failed', e); }
+}
+
+async function clearEqubPenalty(id){
+  if(!requestAdminAccess()) return;
+  const m = equbMembers.find(x=>x.id===id);
+  if(!m) return;
+  try{
+    await equbMembersRef.doc(id).update({ penaltyOwed: 0 });
+    m.penaltyOwed = 0;
+    renderEqubMembers();
+  }catch(e){ console.error('clear penalty failed', e); }
+}
+
+document.getElementById('equbResetPaid').addEventListener('click', async ()=>{
+  if(!requestAdminAccess()) return;
+  if(!confirm('ለሁሉም አባላት የክፍያ ሁኔታ ወደ "አልከፈለም" ይመለሳል (ለቀጣይ ስብስብ)። እርግጠኛ ነዎት? / Reset everyone\'s paid status for the next collection?')) return;
+  try{
+    const batch = db.batch();
+    equbMembers.forEach(m => batch.update(equbMembersRef.doc(m.id), { paidThisRound: false }));
+    await batch.commit();
+    await loadEqubTab();
+  }catch(e){ console.error('reset paid failed', e); }
+});
+
 document.getElementById('equbSaveSettings').addEventListener('click', async ()=>{
   const msgEl = document.getElementById('equbSetMsg');
   const newSettings = {
     ...equbSettings,
     contribution: parseFloat(document.getElementById('equbContribution').value) || 500,
-    frequency: document.getElementById('equbFrequency').value
+    frequency: document.getElementById('equbFrequency').value,
+    startDate: document.getElementById('equbStartDate').value || '',
+    collectionDay: document.getElementById('equbCollectionDay').value,
+    penaltyAmount: parseFloat(document.getElementById('equbPenalty').value) || 0,
+    commissionAmount: parseFloat(document.getElementById('equbCommission').value) || 0
   };
   try{
     await equbSettingsRef.set(newSettings);
     equbSettings = newSettings;
     showMsg(msgEl, '✅ ተቀምጧል / Saved', true);
+    document.getElementById('equbNextCollection').textContent = nextCollectionDateText();
     renderEqubMembers();
   }catch(e){
     console.error('save equb settings failed', e);
@@ -1224,11 +1373,14 @@ document.getElementById('equbDrawBtn').addEventListener('click', ()=>{
 });
 
 async function finalizeEqubDraw(winner, reel){
-  const potAmount = equbSettings.contribution * equbMembers.length;
+  const commission = equbSettings.commissionAmount || 0;
+  const grossPot = equbSettings.contribution * equbMembers.length;
+  const netPayout = Math.max(0, grossPot - commission);
+
   reel.innerHTML = `
     <div class="reel-winner">
       <p class="name">🎉 ${escapeHtml(winner.name)}</p>
-      <p class="phone">${escapeHtml(maskedPhone(winner.phone))} · ${potAmount.toLocaleString()} ብር / ETB</p>
+      <p class="phone">${escapeHtml(maskedPhone(winner.phone))} · ${netPayout.toLocaleString()} ብር / ETB ${commission ? `(ኮሚሽን ${commission.toLocaleString()} ተቀንሷል)` : ''}</p>
     </div>
   `;
   const flash = document.getElementById('equb-flash');
@@ -1241,7 +1393,10 @@ async function finalizeEqubDraw(winner, reel){
       memberId: winner.id,
       memberName: winner.name,
       memberPhone: winner.phone,
-      potAmount,
+      grossPot,
+      commission,
+      netPayout,
+      potAmount: netPayout,
       timestamp: new Date().toISOString()
     });
     await loadEqubTab();

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zeo-lottery-v10';
+const CACHE_NAME = 'zeo-lottery-v11';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
